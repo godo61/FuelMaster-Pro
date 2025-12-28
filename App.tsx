@@ -157,7 +157,7 @@ const App: React.FC = () => {
         setAuthMode('login');
       }
     } catch (err: any) {
-      setAuthError(err.message || "Error desconocido");
+      setAuthError(String(err.message || "Error desconocido"));
     } finally {
       setIsAuthLoading(false);
     }
@@ -468,7 +468,7 @@ const App: React.FC = () => {
                   distancia: newEntry.distancia
                 };
                 const { error } = await supabase.from('fuel_entries').insert([dbEntry]);
-                if (error) alert(error.message);
+                if (error) alert(String(error.message));
                 else {
                   await fetchUserData(session.user.id);
                   setShowNewEntry(false);
