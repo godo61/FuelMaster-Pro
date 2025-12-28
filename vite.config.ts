@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  // 'base: ./' es crítico para que los links a archivos JS/CSS funcionen en GitHub Pages
+  // Base './' permite que funcione en godo61.github.io/FuelMaster-Pro/
   base: './',
   build: {
     outDir: 'dist',
@@ -12,8 +12,5 @@ export default defineConfig({
         main: './index.html'
       }
     }
-  },
-  server: {
-    port: 3000
   }
 });
