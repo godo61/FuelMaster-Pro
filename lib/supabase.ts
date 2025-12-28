@@ -1,15 +1,17 @@
-
 import { createClient } from '@supabase/supabase-js';
 
-/**
- * En Vite, las variables de entorno se inyectan en import.meta.env.
- * Si por alguna razón el objeto no existe (ej. error de compilación),
- * usamos un objeto vacío para evitar el error "Cannot read properties of undefined".
- */
-const env = (import.meta as any).env || {};
+// Función segura para obtener variables de entorno en Vite
+const getEnvVar = (name: string): string => {
+  try {
+    // @ts-ignore - Acceso estándar en Vite
+    return import.meta.env[name] || '';
+  } catch (e) {
+    return '';
+  }
+};
 
-const supabaseUrl = env.VITE_SUPABASE_URL || env.SUPABASE_URL || '';
-const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || '';
+const supabaseUrl = getEnvVar('VITE_SUPABASE_URL') || getEnvVar('SUPABASE_URL') || '';
+const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY') || getEnvVar('SUPABASE_ANON_KEY') || '';
 
 // Detección de configuración válida
 export const isSupabaseConfigured = 
@@ -19,6 +21,7 @@ export const isSupabaseConfigured =
   !supabaseUrl.includes('placeholder');
 
 // Cliente de Supabase
+// Si no está configurado, usamos placeholders para evitar que el SDK de Supabase lance un error inmediato
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder-project.supabase.co', 
   supabaseAnonKey || 'placeholder-key'
