@@ -1,19 +1,19 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// En producción (Vercel/Netlify), estas variables se leen de Environment Variables
+// Estas variables serán sustituidas por Vercel durante el despliegue
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
-// Verificación estricta para mostrar o no la pantalla de configuración
+// Verificación robusta: comprobamos que existan y que la URL sea válida
 export const isSupabaseConfigured = 
   !!supabaseUrl && 
   !!supabaseAnonKey && 
-  supabaseUrl !== 'https://placeholder-project.supabase.co' &&
-  !supabaseUrl.includes('missing-url');
+  supabaseUrl.startsWith('https://') &&
+  !supabaseUrl.includes('placeholder');
 
-// Inicialización segura
+// Inicialización del cliente
 export const supabase = createClient(
-  supabaseUrl || 'https://placeholder-project.supabase.co', 
-  supabaseAnonKey || 'placeholder-key'
+  supabaseUrl || 'https://placeholder.supabase.co', 
+  supabaseAnonKey || 'placeholder'
 );
