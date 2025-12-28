@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  AreaChart, Area, BarChart, Bar
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  AreaChart, Area
 } from 'recharts';
 import { CalculatedEntry } from '../types';
 
@@ -29,7 +29,8 @@ const FuelChart: React.FC<FuelChartProps> = ({ data, type }) => {
             <YAxis 
               tick={{fontSize: 9, fill: '#64748b'}} 
               stroke="transparent" 
-              tickFormatter={(val) => Number(val).toFixed(1)}
+              tickFormatter={(val) => Number(val).toFixed(2)}
+              domain={['auto', 'auto']}
             />
             <Tooltip 
               contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)' }}
@@ -54,7 +55,8 @@ const FuelChart: React.FC<FuelChartProps> = ({ data, type }) => {
             <YAxis 
               tick={{fontSize: 9, fill: '#64748b'}} 
               stroke="transparent"
-              tickFormatter={(val) => Number(val).toFixed(1)}
+              tickFormatter={(val) => Number(val).toFixed(2)}
+              domain={['auto', 'auto']}
             />
             <Tooltip 
               contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}
