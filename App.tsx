@@ -54,7 +54,7 @@ const App: React.FC = () => {
         setSession(currentSession);
         if (currentSession) await fetchUserData(currentSession.user.id);
       } catch (e) {
-        console.error("Error de autenticación:", e);
+        console.error("Error inicializando sesión:", e);
       } finally {
         setIsLoading(false);
       }
@@ -195,15 +195,16 @@ const App: React.FC = () => {
     }
   };
 
+  // Pantalla de error de configuración
   if (!isSupabaseConfigured && !isLoading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 font-sans">
         <div className="max-w-md w-full bg-white rounded-[3rem] p-12 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-2 bg-amber-500"></div>
           <AlertCircle size={64} className="text-amber-500 mx-auto mb-8" />
-          <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900 text-center mb-4 leading-none">ERROR DE<br/>CONFIGURACIÓN</h2>
+          <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900 text-center mb-4 leading-none">CONFIGURACIÓN<br/>PENDIENTE</h2>
           <p className="text-slate-500 text-center mb-10 text-sm leading-relaxed">
-            Las casillas en Vercel están al revés. Asegúrate de poner el nombre en <b>Key</b> y el valor en <b>Value</b>.
+            Las variables de entorno no están configuradas correctamente en Vercel. Asegúrate de usar guiones bajos (_).
           </p>
           <div className="space-y-4">
             <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
@@ -215,7 +216,6 @@ const App: React.FC = () => {
               <span className="text-xs font-black text-slate-700 select-all">SUPABASE_ANON_KEY</span>
             </div>
           </div>
-          <p className="text-[10px] text-slate-400 text-center mt-6 uppercase font-bold tracking-widest">Corrige esto en Vercel y haz un "Redeploy"</p>
           <button onClick={() => window.location.reload()} className="mt-8 flex items-center justify-center gap-2 w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-xl">
             REINTENTAR <RefreshCw size={14} />
           </button>
@@ -224,8 +224,17 @@ const App: React.FC = () => {
     );
   }
 
-  if (isLoading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-emerald-500 font-black tracking-widest animate-pulse uppercase">Cargando Panel Cloud...</div>;
+  // Pantalla de carga
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-6">
+        <RefreshCw size={48} className="text-emerald-500 animate-spin" />
+        <p className="text-emerald-500 font-black tracking-widest uppercase text-xs">Sincronizando Sistema Cloud...</p>
+      </div>
+    );
+  }
 
+  // Pantalla de Login
   if (!session) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 font-sans">
@@ -256,9 +265,10 @@ const App: React.FC = () => {
   const kmRemaining = stats ? serviceConfig.nextServiceKm - stats.lastOdometer : 0;
   const daysRemaining = getDaysRemaining(serviceConfig.nextServiceDate);
 
+  // App Principal
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 pb-20 font-sans">
-      <button onClick={() => setShowNewEntry(true)} className="fixed bottom-10 right-10 z-[60] w-20 h-20 bg-slate-900 text-emerald-500 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-4 border-emerald-500/20"><Plus size={36} /></button>
+      <button onClick={() => setShowNewEntry(true)} className="fixed bottom-10 right-10 z-[60] w-20 h-20 bg-slate-900 text-emerald-500 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-4 border-emerald-500/20 shadow-emerald-500/10"><Plus size={36} /></button>
 
       <nav className="h-28 bg-white/80 backdrop-blur-xl border-b border-slate-100 flex items-center px-10 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto w-full flex justify-between items-center">
@@ -283,7 +293,7 @@ const App: React.FC = () => {
       </nav>
 
       <main className="max-w-7xl mx-auto px-10 py-12">
-        {isSyncing && <div className="fixed top-32 left-1/2 -translate-x-1/2 z-[100] bg-emerald-500 text-white px-10 py-4 rounded-full text-[10px] font-black uppercase animate-bounce shadow-2xl flex items-center gap-3 border-4 border-white"><RefreshCw size={16} className="animate-spin" /> Sincronizando Nube...</div>}
+        {isSyncing && <div className="fixed top-32 left-1/2 -translate-x-1/2 z-[100] bg-emerald-500 text-white px-10 py-4 rounded-full text-[10px] font-black uppercase animate-bounce shadow-2xl flex items-center gap-3 border-4 border-white"><RefreshCw size={16} className="animate-spin" /> Actualizando...</div>}
 
         {stats && stats.lastOdometer > 0 ? (
           <div className="space-y-12">
@@ -331,18 +341,18 @@ const App: React.FC = () => {
                   </div>
                   <div className="mt-12 p-8 bg-slate-900 rounded-[2.5rem] text-white">
                     <p className="text-lg italic leading-relaxed text-slate-300">
-                      Tu flota personal está al día. Basado en tus {entries.length} registros, el Toyota C-HR mantiene un rendimiento constante del {stats.avgKmPerLiter.toFixed(2)} km/L.
+                      Análisis Cloud activo. Basado en tus {entries.length} registros, tu vehículo mantiene un rendimiento del {stats.avgKmPerLiter.toFixed(2)} km/L.
                     </p>
                   </div>
                 </div>
 
                 <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-12">
                    <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm">
-                      <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-10 flex items-center gap-3">Consumo L/100km</h4>
+                      <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-10 flex items-center gap-3"><Activity size={18} className="text-blue-500" /> Consumo L/100km</h4>
                       <FuelChart data={calculatedEntries} type="consumption" />
                    </div>
                    <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm">
-                      <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-10 flex items-center gap-3">Eficiencia km/Litro</h4>
+                      <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-10 flex items-center gap-3"><Zap size={18} className="text-emerald-500" /> Eficiencia km/Litro</h4>
                       <FuelChart data={calculatedEntries} type="efficiency" />
                    </div>
                 </div>
@@ -382,7 +392,7 @@ const App: React.FC = () => {
               <Database size={64} />
             </div>
             <h2 className="text-4xl font-black italic uppercase text-slate-900 mb-6 tracking-tighter">SIN DATOS</h2>
-            <p className="text-slate-400 max-w-xl mb-16 text-xl font-medium italic">Sube tu historial de repostajes para activar el análisis profesional.</p>
+            <p className="text-slate-400 max-w-xl mb-16 text-xl font-medium italic">Sube tu historial de repostajes para activar el análisis.</p>
             <div className="flex gap-8">
               <button onClick={() => setShowImport(true)} className="bg-slate-900 text-white px-16 py-8 rounded-[2.5rem] font-black uppercase tracking-widest text-xs shadow-2xl hover:bg-emerald-600 transition-all flex items-center gap-4"><Upload size={24} /> Importar Datos</button>
               <button onClick={() => setShowNewEntry(true)} className="bg-emerald-500 text-white px-16 py-8 rounded-[2.5rem] font-black uppercase tracking-widest text-xs shadow-2xl hover:bg-slate-900 transition-all flex items-center gap-4"><Plus size={24} /> Nuevo Registro</button>
@@ -391,6 +401,7 @@ const App: React.FC = () => {
         )}
       </main>
 
+      {/* Modales */}
       {showImport && (
         <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
           <div className="bg-white rounded-[4rem] p-16 w-full max-w-2xl text-center relative shadow-2xl">
