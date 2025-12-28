@@ -201,7 +201,7 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center gap-6">
         <RefreshCw className="text-emerald-500 animate-spin" size={48} />
-        <p className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.5em]">Inicializando Sistema...</p>
+        <p className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.5em]">Iniciando Módulo de Control...</p>
       </div>
     );
   }
@@ -215,7 +215,7 @@ const App: React.FC = () => {
               <Lock size={32} />
             </div>
             <h1 className="text-3xl font-black italic tracking-tighter uppercase text-white">FuelMaster Pro</h1>
-            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-2">Introduce tus credenciales de Supabase</p>
+            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-2">Acceso Seguro Cloud</p>
           </div>
 
           <form onSubmit={handleAuth} className="space-y-6">
