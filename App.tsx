@@ -4,7 +4,7 @@ import {
   Euro, Navigation, Trash2, Fuel, TrendingUp, 
   Database, Cloud, Lock, 
   Download, LayoutDashboard, History, LogOut, Key, Mail,
-  AlertCircle, Smartphone
+  AlertCircle, Smartphone, ChevronRight
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { FuelEntry, CalculatedEntry, SummaryStats, ServiceConfig } from './types';
@@ -18,6 +18,7 @@ const LOCAL_STORAGE_KEY = 'fuelmaster_entries';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
+  const [isLocalMode, setIsLocalMode] = useState(false);
   const [entries, setEntries] = useState<FuelEntry[]>([]);
   const [calculatedEntries, setCalculatedEntries] = useState<CalculatedEntry[]>([]);
   const [stats, setStats] = useState<SummaryStats | null>(null);
@@ -49,20 +50,22 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const initApp = async () => {
+      // Intentamos cargar sesión de Supabase si está configurado
       if (isSupabaseConfigured) {
         try {
           const { data: { session: currentSession } } = await supabase.auth.getSession();
-          setSession(currentSession);
           if (currentSession) {
+            setSession(currentSession);
             await fetchUserData(currentSession.user.id);
           } else {
             loadLocalData();
           }
         } catch (e) {
-          console.error("Auth Session Error:", e);
+          console.error("Auth Error:", e);
           loadLocalData();
         }
       } else {
+        setIsLocalMode(true);
         loadLocalData();
       }
       setIsLoading(false);
@@ -73,9 +76,10 @@ const App: React.FC = () => {
     if (isSupabaseConfigured) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
         setSession(newSession);
-        if (newSession) fetchUserData(newSession.user.id);
-        else {
-          setEntries([]);
+        if (newSession) {
+          setIsLocalMode(false);
+          fetchUserData(newSession.user.id);
+        } else {
           loadLocalData();
         }
       });
@@ -163,7 +167,7 @@ const App: React.FC = () => {
     } catch (err: any) {
       let msg = String(err.message || "Error desconocido");
       if (msg.toLowerCase().includes("email not confirmed")) {
-        msg = "Email no confirmado. Por favor revisa tu bandeja de entrada o desactiva la confirmación en Supabase.";
+        msg = "Email no confirmado. Por favor revisa tu bandeja de entrada o usa el modo local.";
       } else if (msg.toLowerCase().includes("invalid login credentials")) {
         msg = "Credenciales inválidas. Revisa tu email y contraseña.";
       }
@@ -180,7 +184,7 @@ const App: React.FC = () => {
     reader.onload = async (event) => {
       try {
         const parsed = parseFuelCSV(event.target?.result as string);
-        if (isSupabaseConfigured && session) {
+        if (isSupabaseConfigured && session && !isLocalMode) {
           const dbEntries = parsed.map(e => ({
             user_id: session.user.id,
             date: e.date,
@@ -211,12 +215,13 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center gap-6">
         <RefreshCw className="text-emerald-500 animate-spin" size={48} />
-        <p className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.5em]">Iniciando Módulo de Control...</p>
+        <p className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.5em]">Sincronizando Sistemas...</p>
       </div>
     );
   }
 
-  if (isSupabaseConfigured && !session) {
+  // Si no hay sesión y no estamos en modo local, mostramos el login
+  if (!session && !isLocalMode) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-slate-950">
         <div className="premium-card w-full max-w-md p-10 space-y-8 animate-fade-in shadow-2xl">
@@ -225,7 +230,7 @@ const App: React.FC = () => {
               <Lock size={32} />
             </div>
             <h1 className="text-3xl font-black italic tracking-tighter uppercase text-white">FuelMaster Pro</h1>
-            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-2">Acceso Seguro Cloud</p>
+            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-2">Seguridad Cloud Master</p>
           </div>
 
           <form onSubmit={handleAuth} className="space-y-6">
@@ -268,12 +273,27 @@ const App: React.FC = () => {
             </button>
           </form>
 
-          <div className="text-center pt-4 border-t border-white/5">
+          <div className="space-y-4 pt-4 border-t border-white/5">
             <button 
               onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
-              className="text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-emerald-500 transition-colors"
+              className="w-full text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-emerald-500 transition-colors"
             >
               {authMode === 'login' ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Entra'}
+            </button>
+            <div className="relative flex items-center py-2">
+              <div className="flex-grow border-t border-white/5"></div>
+              <span className="flex-shrink mx-4 text-[9px] font-black text-slate-700 uppercase tracking-widest">O</span>
+              <div className="flex-grow border-t border-white/5"></div>
+            </div>
+            <button 
+              onClick={() => {
+                setIsLocalMode(true);
+                loadLocalData();
+              }}
+              className="w-full flex items-center justify-center gap-2 group text-white hover:text-emerald-400 transition-all"
+            >
+              <span className="text-[10px] font-black uppercase tracking-widest">Continuar en Modo Local</span>
+              <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
         </div>
@@ -292,9 +312,9 @@ const App: React.FC = () => {
             <div>
               <h1 className="text-xl font-black italic tracking-tighter uppercase leading-none text-white">FuelMaster Pro</h1>
               <div className="flex items-center gap-2 mt-1">
-                {isSupabaseConfigured ? <Cloud size={10} className="text-blue-400" /> : <Smartphone size={10} className="text-amber-400" />}
+                {(session && !isLocalMode) ? <Cloud size={10} className="text-blue-400" /> : <Smartphone size={10} className="text-amber-400" />}
                 <p className="text-[8px] font-bold uppercase tracking-widest text-slate-400">
-                  {isSupabaseConfigured ? (session?.user?.email ? String(session.user.email) : "Cloud Sync") : "Modo Local"}
+                  {(session && !isLocalMode) ? (session?.user?.email ? String(session.user.email) : "Cloud Sync") : "Modo Offline"}
                 </p>
               </div>
             </div>
@@ -309,11 +329,14 @@ const App: React.FC = () => {
                 Historial
               </button>
             </div>
-            <button onClick={() => setShowImport(true)} className="bg-white/5 h-12 px-6 rounded-xl font-black text-[10px] uppercase flex items-center gap-2 border border-white/5 text-white">
+            <button onClick={() => setShowImport(true)} className="bg-white/5 h-12 px-6 rounded-xl font-black text-[10px] uppercase flex items-center gap-2 border border-white/5 text-white hover:bg-white/10 transition-all">
               <Upload size={14} /> Importar
             </button>
-            {session && (
-              <button onClick={() => supabase.auth.signOut()} className="w-12 h-12 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
+            {(session || isLocalMode) && (
+              <button onClick={() => {
+                if (isLocalMode) setIsLocalMode(false);
+                else supabase.auth.signOut();
+              }} className="w-12 h-12 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
                 <LogOut size={20} />
               </button>
             )}
@@ -396,7 +419,7 @@ const App: React.FC = () => {
                           <td className="px-8 py-6 text-right">
                              <button onClick={async () => {
                                if(confirm("¿Eliminar registro?")) {
-                                 if (isSupabaseConfigured && session) {
+                                 if (isSupabaseConfigured && session && !isLocalMode) {
                                    await supabase.from('fuel_entries').delete().eq('id', e.id);
                                    fetchUserData(session.user.id);
                                  } else {
@@ -422,8 +445,8 @@ const App: React.FC = () => {
             <Database className="mb-8 text-slate-800" size={64} />
             <h2 className="text-3xl font-black italic uppercase text-white mb-4">Sin Datos</h2>
             <div className="flex gap-4">
-              <button onClick={() => setShowImport(true)} className="bg-emerald-500 text-slate-950 px-8 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg">Importar CSV</button>
-              <button onClick={() => setShowNewEntry(true)} className="bg-slate-800 text-white px-8 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest">Nuevo Registro</button>
+              <button onClick={() => setShowImport(true)} className="bg-emerald-500 text-slate-950 px-8 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg hover:bg-emerald-400 transition-all">Importar CSV</button>
+              <button onClick={() => setShowNewEntry(true)} className="bg-slate-800 text-white px-8 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-700 transition-all">Nuevo Registro</button>
             </div>
           </div>
         )}
@@ -439,7 +462,7 @@ const App: React.FC = () => {
             <button onClick={() => setShowImport(false)} className="absolute top-8 right-8 text-slate-500 hover:text-white transition-colors">
               <X size={32}/>
             </button>
-            <h3 className="text-xl font-black italic uppercase mb-10 text-white">Importación</h3>
+            <h3 className="text-xl font-black italic uppercase mb-10 text-white">Importación de Datos</h3>
             <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-slate-800 rounded-3xl p-16 text-center hover:border-emerald-500/50 cursor-pointer group transition-all">
               <Upload className="mx-auto mb-6 text-slate-800 group-hover:text-emerald-500" size={56} />
               <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.4em]">Subir archivo .csv</p>
@@ -473,7 +496,7 @@ const App: React.FC = () => {
                 kmPerLiter: 0
               };
 
-              if (isSupabaseConfigured && session) {
+              if (isSupabaseConfigured && session && !isLocalMode) {
                 const dbEntry = {
                   user_id: session.user.id,
                   date: newEntry.date,
@@ -507,13 +530,25 @@ const App: React.FC = () => {
             </h3>
             
             <div className="grid grid-cols-2 gap-6">
-              <input type="date" value={newEntryForm.date} onChange={e => setNewEntryForm({...newEntryForm, date: e.target.value})} className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500" required />
-              <input type="number" value={newEntryForm.kmFinal} onChange={e => setNewEntryForm({...newEntryForm, kmFinal: e.target.value})} placeholder="ODÓMETRO" className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500" required />
-              <input type="number" step="0.01" value={newEntryForm.fuelAmount} onChange={e => setNewEntryForm({...newEntryForm, fuelAmount: e.target.value})} placeholder="LITROS" className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500" required />
-              <input type="number" step="0.001" value={newEntryForm.pricePerLiter} onChange={e => setNewEntryForm({...newEntryForm, pricePerLiter: e.target.value})} placeholder="PVP €/L" className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500" required />
+              <div className="space-y-2">
+                <label className="text-[9px] font-black text-slate-500 uppercase ml-2">Fecha</label>
+                <input type="date" value={newEntryForm.date} onChange={e => setNewEntryForm({...newEntryForm, date: e.target.value})} className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500" required />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[9px] font-black text-slate-500 uppercase ml-2">Odómetro</label>
+                <input type="number" value={newEntryForm.kmFinal} onChange={e => setNewEntryForm({...newEntryForm, kmFinal: e.target.value})} placeholder="KM TOTAL" className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500" required />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[9px] font-black text-slate-500 uppercase ml-2">Litros</label>
+                <input type="number" step="0.01" value={newEntryForm.fuelAmount} onChange={e => setNewEntryForm({...newEntryForm, fuelAmount: e.target.value})} placeholder="0.00" className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500" required />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[9px] font-black text-slate-500 uppercase ml-2">Precio €/L</label>
+                <input type="number" step="0.001" value={newEntryForm.pricePerLiter} onChange={e => setNewEntryForm({...newEntryForm, pricePerLiter: e.target.value})} placeholder="0.000" className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500" required />
+              </div>
             </div>
             
-            <button type="submit" className="w-full bg-emerald-500 text-slate-950 py-6 rounded-xl font-black uppercase tracking-widest mt-10 shadow-lg hover:bg-emerald-400 transition-all">Sincronizar Cloud</button>
+            <button type="submit" className="w-full bg-emerald-500 text-slate-950 py-6 rounded-xl font-black uppercase tracking-widest mt-10 shadow-lg hover:bg-emerald-400 transition-all">Sincronizar Registro</button>
           </form>
         </div>
       )}
