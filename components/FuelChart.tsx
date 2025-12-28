@@ -13,8 +13,6 @@ interface FuelChartProps {
 const FuelChart: React.FC<FuelChartProps> = ({ data, type }) => {
   if (data.length === 0) return <div className="h-full flex items-center justify-center text-slate-600 font-bold uppercase text-[10px] tracking-widest">Sin datos suficientes</div>;
 
-  const formatVal = (val: any) => parseFloat(val).toFixed(2);
-
   const renderChart = () => {
     switch (type) {
       case 'consumption':
@@ -28,12 +26,18 @@ const FuelChart: React.FC<FuelChartProps> = ({ data, type }) => {
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
             <XAxis dataKey="date" tick={{fontSize: 9, fill: '#64748b'}} stroke="transparent" />
-            <YAxis tick={{fontSize: 9, fill: '#64748b'}} stroke="transparent" />
+            <YAxis 
+              tick={{fontSize: 9, fill: '#64748b'}} 
+              stroke="transparent" 
+              tickFormatter={(val) => Number(val).toFixed(1)}
+            />
             <Tooltip 
               contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)' }}
               itemStyle={{ color: '#3b82f6', fontWeight: 'bold', fontSize: '12px' }}
+              formatter={(value: any) => [Number(value).toFixed(2), 'L/100km']}
+              labelStyle={{ color: '#94a3b8', marginBottom: '4px', fontSize: '10px', fontWeight: 'bold' }}
             />
-            <Area name="L/100km" type="monotone" dataKey="consumption" stroke="#3b82f6" fillOpacity={1} fill="url(#colorCons)" strokeWidth={3} />
+            <Area name="Consumo" type="monotone" dataKey="consumption" stroke="#3b82f6" fillOpacity={1} fill="url(#colorCons)" strokeWidth={3} />
           </AreaChart>
         );
       case 'efficiency':
@@ -47,12 +51,18 @@ const FuelChart: React.FC<FuelChartProps> = ({ data, type }) => {
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
             <XAxis dataKey="date" tick={{fontSize: 9, fill: '#64748b'}} stroke="transparent" />
-            <YAxis tick={{fontSize: 9, fill: '#64748b'}} stroke="transparent" />
+            <YAxis 
+              tick={{fontSize: 9, fill: '#64748b'}} 
+              stroke="transparent"
+              tickFormatter={(val) => Number(val).toFixed(1)}
+            />
             <Tooltip 
               contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}
-              itemStyle={{ color: '#10b981', fontWeight: 'bold' }}
+              itemStyle={{ color: '#10b981', fontWeight: 'bold', fontSize: '12px' }}
+              formatter={(value: any) => [Number(value).toFixed(2), 'km/L']}
+              labelStyle={{ color: '#94a3b8', marginBottom: '4px', fontSize: '10px', fontWeight: 'bold' }}
             />
-            <Area name="km/L" type="monotone" dataKey="kmPerLiter" stroke="#10b981" fillOpacity={1} fill="url(#colorEff)" strokeWidth={3} />
+            <Area name="Eficiencia" type="monotone" dataKey="kmPerLiter" stroke="#10b981" fillOpacity={1} fill="url(#colorEff)" strokeWidth={3} />
           </AreaChart>
         );
       default:
