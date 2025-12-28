@@ -74,7 +74,10 @@ const App: React.FC = () => {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
         setSession(newSession);
         if (newSession) fetchUserData(newSession.user.id);
-        else setEntries([]);
+        else {
+          setEntries([]);
+          loadLocalData();
+        }
       });
       return () => subscription.unsubscribe();
     }
@@ -155,9 +158,16 @@ const App: React.FC = () => {
         });
         if (error) throw error;
         setAuthMode('login');
+        alert("¡Registro casi listo! Por favor, revisa tu correo para confirmar la cuenta.");
       }
     } catch (err: any) {
-      setAuthError(String(err.message || "Error desconocido"));
+      let msg = String(err.message || "Error desconocido");
+      if (msg.toLowerCase().includes("email not confirmed")) {
+        msg = "Email no confirmado. Por favor revisa tu bandeja de entrada o desactiva la confirmación en Supabase.";
+      } else if (msg.toLowerCase().includes("invalid login credentials")) {
+        msg = "Credenciales inválidas. Revisa tu email y contraseña.";
+      }
+      setAuthError(msg);
     } finally {
       setIsAuthLoading(false);
     }
@@ -191,7 +201,7 @@ const App: React.FC = () => {
         }
         setShowImport(false);
       } catch (err: any) {
-        alert("Error al importar CSV");
+        alert("Error al importar CSV: " + String(err.message));
       }
     };
     reader.readAsText(file);
@@ -220,38 +230,45 @@ const App: React.FC = () => {
 
           <form onSubmit={handleAuth} className="space-y-6">
             {authError && (
-              <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl flex items-center gap-3 text-red-400 text-xs font-bold uppercase tracking-wider">
-                <AlertCircle size={16} /> {String(authError)}
+              <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl flex items-start gap-3 text-red-400 text-[10px] font-bold uppercase tracking-wider leading-relaxed">
+                <AlertCircle size={14} className="mt-0.5 shrink-0" /> 
+                <span>{authError}</span>
               </div>
             )}
             <div className="space-y-4">
-              <input 
-                type="email" 
-                value={authEmail} 
-                onChange={e => setAuthEmail(e.target.value)}
-                placeholder="EMAIL"
-                className="w-full bg-slate-900 border border-white/5 rounded-xl py-4 px-6 text-sm font-bold text-white outline-none focus:border-emerald-500"
-                required
-              />
-              <input 
-                type="password" 
-                value={authPassword} 
-                onChange={e => setAuthPassword(e.target.value)}
-                placeholder="PASSWORD"
-                className="w-full bg-slate-900 border border-white/5 rounded-xl py-4 px-6 text-sm font-bold text-white outline-none focus:border-emerald-500"
-                required
-              />
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                <input 
+                  type="email" 
+                  value={authEmail} 
+                  onChange={e => setAuthEmail(e.target.value)}
+                  placeholder="EMAIL"
+                  className="w-full bg-slate-900 border border-white/5 rounded-xl py-4 pl-12 pr-6 text-sm font-bold text-white outline-none focus:border-emerald-500"
+                  required
+                />
+              </div>
+              <div className="relative">
+                <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                <input 
+                  type="password" 
+                  value={authPassword} 
+                  onChange={e => setAuthPassword(e.target.value)}
+                  placeholder="PASSWORD"
+                  className="w-full bg-slate-900 border border-white/5 rounded-xl py-4 pl-12 pr-6 text-sm font-bold text-white outline-none focus:border-emerald-500"
+                  required
+                />
+              </div>
             </div>
             <button 
               type="submit" 
               disabled={isAuthLoading}
-              className="w-full bg-emerald-500 text-slate-950 py-4 rounded-xl font-black uppercase text-xs tracking-widest transition-all"
+              className="w-full bg-emerald-500 text-slate-950 py-4 rounded-xl font-black uppercase text-xs tracking-widest transition-all hover:bg-emerald-400 disabled:opacity-50"
             >
               {isAuthLoading ? 'CONECTANDO...' : (authMode === 'login' ? 'ENTRAR' : 'REGISTRARSE')}
             </button>
           </form>
 
-          <div className="text-center pt-4">
+          <div className="text-center pt-4 border-t border-white/5">
             <button 
               onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
               className="text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-emerald-500 transition-colors"
