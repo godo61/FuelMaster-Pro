@@ -3,7 +3,7 @@ import {
   Upload, Zap, Activity, Wrench, X, RefreshCw, Plus, 
   Euro, Navigation, Trash2, Fuel, TrendingUp, 
   Database, AlertCircle, BarChart3, 
-  ChevronRight, Gauge, User, ShieldCheck
+  ChevronRight, Gauge, User, ShieldCheck, WifiOff
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { FuelEntry, CalculatedEntry, SummaryStats, ServiceConfig } from './types';
@@ -21,6 +21,7 @@ const App: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [view, setView] = useState<'dashboard' | 'history'>('dashboard');
   const [dbError, setDbError] = useState<string | null>(null);
+  const [networkError, setNetworkError] = useState<boolean>(false);
   
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
@@ -46,14 +47,27 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const initApp = async () => {
+      if (!isSupabaseConfigured) {
+        setDbError("Configuración de Supabase no detectada o inválida (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).");
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        
         setSession(currentSession);
         if (currentSession) {
           await fetchUserData(currentSession.user.id);
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error("Error inicializando Supabase:", e);
+        if (e.message?.includes('fetch') || e.name === 'TypeError') {
+          setNetworkError(true);
+        } else {
+          setAuthError(e.message);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -70,8 +84,10 @@ const App: React.FC = () => {
   }, []);
 
   const fetchUserData = async (userId: string) => {
+    if (!isSupabaseConfigured) return;
     setIsSyncing(true);
     setDbError(null);
+    setNetworkError(false);
     try {
       const { data, error } = await supabase
         .from('fuel_entries')
@@ -81,7 +97,9 @@ const App: React.FC = () => {
 
       if (error) {
         if (error.code === 'PGRST116' || error.message.includes('relation "fuel_entries" does not exist')) {
-          setDbError("La tabla 'fuel_entries' no ha sido creada en Supabase. Por favor, ejecuta el script SQL.");
+          setDbError("La tabla 'fuel_entries' no ha sido creada en Supabase. Ejecuta el script SQL en el panel de Supabase.");
+        } else if (error.message?.includes('fetch')) {
+          setNetworkError(true);
         }
         throw error;
       }
@@ -95,8 +113,9 @@ const App: React.FC = () => {
           kmFinal: d.km_final
         })));
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("Error al obtener datos:", e);
+      if (e.message?.includes('fetch')) setNetworkError(true);
     } finally {
       setIsSyncing(false);
     }
@@ -117,6 +136,7 @@ const App: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     setAuthError(null);
+    setNetworkError(false);
     try {
       if (authMode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ 
@@ -133,9 +153,13 @@ const App: React.FC = () => {
         alert("¡Cuenta creada! Verifica tu correo electrónico.");
       }
     } catch (error: any) {
-      setAuthError(error.message === 'Invalid login credentials' 
-        ? "Email o contraseña incorrectos." 
-        : error.message);
+      if (error.message?.includes('fetch')) {
+        setNetworkError(true);
+      } else {
+        setAuthError(error.message === 'Invalid login credentials' 
+          ? "Email o contraseña incorrectos." 
+          : error.message);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -229,6 +253,31 @@ const App: React.FC = () => {
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-6">
         <RefreshCw className="text-emerald-500 animate-spin" size={48} />
         <p className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.4em]">Iniciando FuelMaster...</p>
+      </div>
+    );
+  }
+
+  // Pantalla de error de red o configuración
+  if (networkError || (dbError && !session)) {
+    return (
+      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-6">
+        <div className="w-full max-w-lg bg-slate-900/50 backdrop-blur-xl rounded-[3rem] p-12 border border-red-500/20 shadow-2xl text-center">
+          <div className="w-24 h-24 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mx-auto mb-8 animate-pulse">
+            <WifiOff size={48} />
+          </div>
+          <h2 className="text-2xl font-black italic uppercase text-white mb-4">Error de Conexión</h2>
+          <p className="text-slate-400 font-medium mb-10">
+            {networkError 
+              ? "No se pudo establecer conexión con el servidor (Failed to fetch). Verifica tu conexión a internet o la URL de Supabase."
+              : dbError}
+          </p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="bg-emerald-500 text-slate-900 px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-emerald-400 transition-all shadow-xl shadow-emerald-500/20"
+          >
+            Reintentar Conexión
+          </button>
+        </div>
       </div>
     );
   }

@@ -1,11 +1,9 @@
-
-
 import { createClient } from '@supabase/supabase-js';
 
 /**
  * IMPORTANTE: Para que la sincronización funcione, ejecuta este SQL en tu panel de Supabase:
  * 
- * create table fuel_entries (
+ * create table if not exists fuel_entries (
  *   id uuid default gen_random_uuid() primary key,
  *   user_id uuid references auth.users not null,
  *   date text not null,
@@ -25,14 +23,42 @@ import { createClient } from '@supabase/supabase-js';
  *   using (auth.uid() = user_id);
  */
 
-// Vite utiliza import.meta.env para las variables de entorno en el cliente
-// Fix: Access env properties through type assertion to resolve TypeScript errors on lines 27 and 28
-const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || '';
+// Función segura para obtener variables de entorno sin lanzar TypeErrors
+const getEnv = (key: string): string => {
+  try {
+    // 1. Intentar import.meta.env (Vite / ESM moderno)
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta && import.meta.env) {
+      // @ts-ignore
+      const val = import.meta.env[key];
+      if (val) return val;
+    }
+  } catch (e) {}
 
-export const isSupabaseConfigured = !!supabaseUrl && !!supabaseAnonKey;
+  try {
+    // 2. Intentar process.env (Node / Entornos Sandbox)
+    if (typeof process !== 'undefined' && process && process.env) {
+      const val = (process.env as any)[key];
+      if (val) return val;
+    }
+  } catch (e) {}
 
+  return '';
+};
+
+const supabaseUrl = getEnv('VITE_SUPABASE_URL');
+const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY');
+
+// Verificación de configuración válida
+export const isSupabaseConfigured = 
+  !!supabaseUrl && 
+  supabaseUrl.startsWith('https://') && 
+  !supabaseUrl.includes('placeholder') &&
+  !!supabaseAnonKey &&
+  supabaseAnonKey !== 'placeholder';
+
+// Solo inicializar si es válido para evitar errores de red inmediatos (Failed to fetch)
 export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder'
+  isSupabaseConfigured ? supabaseUrl : 'https://invalid-config.supabase.co',
+  isSupabaseConfigured ? supabaseAnonKey : 'invalid-key'
 );
