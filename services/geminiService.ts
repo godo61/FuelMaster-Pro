@@ -1,8 +1,4 @@
-
-/**
- * Servicio de IA desactivado.
- * La aplicación ahora funciona de manera 100% local/privada sin dependencias externas de análisis.
- */
+// Deprecated: AI service removed as per user request.
 export const getFuelInsights = async (): Promise<string> => {
-  return "";
+  return "Servicio IA no disponible.";
 };

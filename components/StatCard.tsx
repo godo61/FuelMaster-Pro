@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface StatCardProps {
@@ -11,18 +10,21 @@ interface StatCardProps {
 
 const StatCard: React.FC<StatCardProps> = ({ label, value, unit, icon, color }) => {
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 transition-all hover:shadow-md">
-      <div className="flex items-center justify-between mb-4">
-        <div className={`p-3 rounded-xl ${color} bg-opacity-10 text-${color.split('-')[1]}-600`}>
+    <div className="premium-card p-6 flex flex-col justify-between group overflow-hidden">
+      <div className="flex items-start justify-between">
+        <div className={`p-3 rounded-xl ${color} bg-opacity-20 text-white shadow-lg`}>
           {icon}
         </div>
+        <div className="h-1 w-8 bg-white/5 rounded-full mt-2"></div>
       </div>
-      <div>
-        <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wider">{label}</h3>
-        <p className="text-2xl font-bold text-slate-900 mt-1">
-          {value}
-          {unit && <span className="text-sm font-normal text-slate-400 ml-1">{unit}</span>}
-        </p>
+      <div className="mt-6">
+        <h3 className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">{label}</h3>
+        <div className="flex items-baseline gap-1">
+          <span className="text-2xl font-black text-white group-hover:text-emerald-400 transition-colors">
+            {value}
+          </span>
+          {unit && <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter">{unit}</span>}
+        </div>
       </div>
     </div>
   );
