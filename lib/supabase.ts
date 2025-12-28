@@ -1,9 +1,12 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// En Vite, las variables de entorno se acceden vía import.meta.env
-// Se recomienda usar el prefijo VITE_ en Vercel (ej: VITE_SUPABASE_URL)
-const env = (import.meta as any).env;
+/**
+ * En Vite, las variables de entorno se inyectan en import.meta.env.
+ * Si por alguna razón el objeto no existe (ej. error de compilación),
+ * usamos un objeto vacío para evitar el error "Cannot read properties of undefined".
+ */
+const env = (import.meta as any).env || {};
 
 const supabaseUrl = env.VITE_SUPABASE_URL || env.SUPABASE_URL || '';
 const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || '';
