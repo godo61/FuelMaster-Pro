@@ -25,6 +25,7 @@ const App: React.FC = () => {
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const [showImport, setShowImport] = useState(false);
   const [showNewEntry, setShowNewEntry] = useState(false);
@@ -46,23 +47,18 @@ const App: React.FC = () => {
   // Carga inicial y Auth
   useEffect(() => {
     const initApp = async () => {
-      // 1. Intentar cargar sesión si Supabase está configurado
       if (isSupabaseConfigured) {
         try {
           const { data, error } = await supabase.auth.getSession();
-          if (error) throw error;
-          
-          if (data?.session) {
+          if (!error && data?.session) {
             setSession(data.session);
             await fetchUserData(data.session.user.id);
           }
         } catch (e) {
-          console.warn("Error de conexión con Supabase (posible Failed to fetch):", e);
-          // Si falla la conexión, permitimos que el usuario use el modo local
+          console.warn("Error de conexión inicial:", e);
         }
       }
 
-      // 2. Si no hay sesión, mirar localStorage
       const localData = localStorage.getItem('fuelmaster_local_entries');
       if (localData && !session) {
         try {
@@ -89,7 +85,7 @@ const App: React.FC = () => {
         });
         return () => subscription.unsubscribe();
       } catch (e) {
-        console.warn("No se pudo establecer el escuchador de Auth:", e);
+        console.warn("No se pudo establecer Auth Listener:", e);
       }
     }
   }, []);
@@ -114,8 +110,7 @@ const App: React.FC = () => {
         })));
       }
     } catch (e) { 
-      console.error("Error al obtener datos de Supabase:", e);
-      alert("Error al sincronizar con la nube. Es posible que el servicio esté temporalmente inactivo.");
+      console.error("Error Fetch User Data:", e);
     }
   };
 
@@ -125,7 +120,6 @@ const App: React.FC = () => {
       setCalculatedEntries(calculated);
       setStats(getSummaryStats(calculated));
       
-      // Guardar en local para persistencia inmediata
       if (isGuest || !session) {
         localStorage.setItem('fuelmaster_local_entries', JSON.stringify(entries));
       }
@@ -138,6 +132,7 @@ const App: React.FC = () => {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setAuthError(null);
     try {
       const { error } = authMode === 'login' 
         ? await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword })
@@ -145,10 +140,14 @@ const App: React.FC = () => {
       
       if (error) throw error;
     } catch (error: any) {
-      const msg = error.message === 'Failed to fetch' 
-        ? "No se pudo contactar con el servidor. Revisa tu conexión o usa el Modo Local."
-        : error.message;
-      alert("Error: " + msg);
+      console.error("Auth error:", error);
+      let msg = error.message;
+      if (msg === 'Invalid login credentials') {
+        msg = "Email o contraseña incorrectos. ¿Has creado ya tu cuenta?";
+      } else if (msg === 'Failed to fetch') {
+        msg = "Error de red. Prueba el Modo Local.";
+      }
+      setAuthError(msg);
     } finally {
       setIsLoading(false);
     }
@@ -254,11 +253,7 @@ const App: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    try {
-      if (session) await supabase.auth.signOut();
-    } catch (e) {
-      console.warn("Error al cerrar sesión en Supabase:", e);
-    }
+    try { if (session) await supabase.auth.signOut(); } catch (e) {}
     localStorage.removeItem('fuelmaster_local_entries');
     setEntries([]);
     setIsGuest(false);
@@ -297,32 +292,40 @@ const App: React.FC = () => {
                 <User size={24} />
               </div>
               <span className="text-xs font-black uppercase tracking-widest text-slate-900">Modo Local</span>
-              <span className="text-[9px] text-slate-400 font-bold uppercase mt-1">Sin nube, datos privados</span>
+              <span className="text-[9px] text-slate-400 font-bold uppercase mt-1">Sin nube, privado</span>
             </button>
-            <div className="flex flex-col items-center justify-center p-8 bg-slate-900 rounded-[2.5rem] transition-all">
-              <div className="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center text-emerald-500 shadow-sm mb-4">
+            <div className="flex flex-col items-center justify-center p-8 bg-slate-100 rounded-[2.5rem] opacity-50 grayscale">
+              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-slate-300 shadow-sm mb-4">
                 <ShieldCheck size={24} />
               </div>
-              <span className="text-xs font-black uppercase tracking-widest text-white">Seguridad Cloud</span>
-              <span className="text-[9px] text-slate-500 font-bold uppercase mt-1">Sincronización Total</span>
+              <span className="text-xs font-black uppercase tracking-widest text-slate-400">Cloud Sync</span>
+              <span className="text-[9px] text-slate-300 font-bold uppercase mt-1">Sincronización</span>
             </div>
           </div>
 
           <div className="relative py-4 mb-8">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100"></div></div>
-            <div className="relative flex justify-center text-[10px] uppercase font-black text-slate-300 bg-white px-4">Acceso Usuarios</div>
+            <div className="relative flex justify-center text-[10px] uppercase font-black text-slate-300 bg-white px-4">
+              {authMode === 'login' ? 'Inicia Sesión' : 'Crea tu Cuenta'}
+            </div>
           </div>
+
+          {authError && (
+            <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-2xl text-[11px] font-bold uppercase flex items-center gap-3 border border-red-100">
+              <AlertCircle size={16} /> {authError}
+            </div>
+          )}
 
           <form onSubmit={handleAuth} className="space-y-4">
             <input type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} className="w-full bg-slate-50 border-none rounded-2xl py-5 px-8 font-bold outline-none focus:ring-2 focus:ring-emerald-500 transition-all" placeholder="Email" required />
             <input type="password" value={authPassword} onChange={e => setAuthPassword(e.target.value)} className="w-full bg-slate-50 border-none rounded-2xl py-5 px-8 font-bold outline-none focus:ring-2 focus:ring-emerald-500 transition-all" placeholder="Contraseña" required />
             <button type="submit" className="w-full bg-slate-900 text-white py-6 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl hover:bg-emerald-600 transition-all">
-              {authMode === 'login' ? 'Entrar al Panel' : 'Crear mi Cuenta'}
+              {authMode === 'login' ? 'Acceder al Panel' : 'Registrarme Gratis'}
             </button>
           </form>
 
-          <button onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="w-full mt-8 text-[10px] font-black uppercase text-slate-400 hover:text-emerald-500 transition-colors">
-            {authMode === 'login' ? '¿Eres nuevo? Regístrate aquí' : '¿Ya tienes cuenta? Entra aquí'}
+          <button onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); setAuthError(null); }} className="w-full mt-8 text-[10px] font-black uppercase text-slate-400 hover:text-emerald-500 transition-colors">
+            {authMode === 'login' ? '¿No tienes cuenta? Regístrate aquí' : '¿Ya tienes cuenta? Entra aquí'}
           </button>
         </div>
       </div>
@@ -361,7 +364,7 @@ const App: React.FC = () => {
       </nav>
 
       <main className="max-w-7xl mx-auto px-6 md:px-10 py-12">
-        {isSyncing && <div className="fixed top-32 left-1/2 -translate-x-1/2 z-[100] bg-emerald-500 text-white px-10 py-4 rounded-full text-[10px] font-black uppercase animate-bounce shadow-2xl flex items-center gap-3 border-4 border-white"><RefreshCw size={16} className="animate-spin" /> Procesando Datos...</div>}
+        {isSyncing && <div className="fixed top-32 left-1/2 -translate-x-1/2 z-[100] bg-emerald-500 text-white px-10 py-4 rounded-full text-[10px] font-black uppercase animate-bounce shadow-2xl flex items-center gap-3 border-4 border-white"><RefreshCw size={16} className="animate-spin" /> Procesando...</div>}
 
         {stats && stats.lastOdometer > 0 ? (
           <div className="space-y-12">
@@ -409,7 +412,7 @@ const App: React.FC = () => {
                   </div>
                   <div className="mt-12 p-8 bg-slate-900 rounded-[2.5rem] text-white">
                     <p className="text-lg italic leading-relaxed text-slate-300">
-                      {isGuest ? "Estás en Modo Local. " : "Datos sincronizados en la nube. "}
+                      {isGuest ? "Modo Local Activo (Navegador). " : "Sincronizado con la nube. "}
                       Rendimiento global: {stats.avgKmPerLiter.toFixed(2)} km/L.
                     </p>
                   </div>
@@ -446,7 +449,7 @@ const App: React.FC = () => {
                         <td className="px-12 py-8 text-right text-sm font-medium">{e.fuelAmount.toFixed(2)} L</td>
                         <td className="px-12 py-8 text-right text-sm font-black text-emerald-600">{e.consumption.toFixed(2)}</td>
                         <td className="px-12 py-8 text-right">
-                           <button onClick={() => {if(confirm("¿Borrar permanentemente?")) setEntries(entries.filter(x => x.id !== e.id))}} className="p-3 text-slate-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={20}/></button>
+                           <button onClick={() => {if(confirm("¿Borrar registro?")) setEntries(entries.filter(x => x.id !== e.id))}} className="p-3 text-slate-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={20}/></button>
                         </td>
                       </tr>
                     ))}
@@ -460,8 +463,8 @@ const App: React.FC = () => {
             <div className="w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 mb-10">
               <Database size={64} />
             </div>
-            <h2 className="text-4xl font-black italic uppercase text-slate-900 mb-6 tracking-tighter">SIN DATOS ACTIVOS</h2>
-            <p className="text-slate-400 max-w-xl mb-16 text-xl font-medium italic">Sube tu CSV de FuelMaster para empezar el análisis en tiempo real.</p>
+            <h2 className="text-4xl font-black italic uppercase text-slate-900 mb-6 tracking-tighter">SIN DATOS</h2>
+            <p className="text-slate-400 max-w-xl mb-16 text-xl font-medium italic">Sube tu CSV de repostajes para activar el análisis.</p>
             <div className="flex flex-col sm:flex-row gap-6 md:gap-8">
               <button onClick={() => setShowImport(true)} className="bg-slate-900 text-white px-12 md:px-16 py-6 md:py-8 rounded-[2.5rem] font-black uppercase tracking-widest text-xs shadow-2xl hover:bg-emerald-600 transition-all flex items-center justify-center gap-4"><Upload size={24} /> Importar Datos</button>
               <button onClick={() => setShowNewEntry(true)} className="bg-emerald-500 text-white px-12 md:px-16 py-6 md:py-8 rounded-[2.5rem] font-black uppercase tracking-widest text-xs shadow-2xl hover:bg-slate-900 transition-all flex items-center justify-center gap-4"><Plus size={24} /> Nuevo Registro</button>
@@ -474,10 +477,10 @@ const App: React.FC = () => {
         <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
           <div className="bg-white rounded-[3.5rem] p-10 md:p-16 w-full max-w-2xl text-center relative shadow-2xl">
             <button onClick={() => setShowImport(false)} className="absolute top-10 right-10 text-slate-300 hover:text-slate-900 transition-colors"><X size={32} /></button>
-            <h3 className="text-3xl font-black italic uppercase mb-12 tracking-tighter">CARGAR HISTORIAL CSV</h3>
+            <h3 className="text-3xl font-black italic uppercase mb-12 tracking-tighter">CARGAR CSV</h3>
             <div onClick={() => fileInputRef.current?.click()} className="border-4 border-dashed border-slate-100 rounded-[3rem] p-16 md:p-20 hover:bg-emerald-50 hover:border-emerald-200 cursor-pointer transition-all group">
               <Upload className="mx-auto mb-8 text-slate-100 group-hover:text-emerald-500 transition-colors" size={64} />
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Pulsa para elegir archivo</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Seleccionar Archivo</p>
             </div>
             <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".csv" className="hidden" />
           </div>
