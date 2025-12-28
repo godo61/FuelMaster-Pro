@@ -20,6 +20,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [view, setView] = useState<'dashboard' | 'history'>('dashboard');
+  const [dbError, setDbError] = useState<string | null>(null);
   
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
@@ -43,7 +44,6 @@ const App: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Inicialización de sesión y datos
   useEffect(() => {
     const initApp = async () => {
       try {
@@ -71,6 +71,7 @@ const App: React.FC = () => {
 
   const fetchUserData = async (userId: string) => {
     setIsSyncing(true);
+    setDbError(null);
     try {
       const { data, error } = await supabase
         .from('fuel_entries')
@@ -78,7 +79,12 @@ const App: React.FC = () => {
         .eq('user_id', userId)
         .order('km_final', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116' || error.message.includes('relation "fuel_entries" does not exist')) {
+          setDbError("La tabla 'fuel_entries' no ha sido creada en Supabase. Por favor, ejecuta el script SQL.");
+        }
+        throw error;
+      }
       
       if (data) {
         setEntries(data.map(d => ({
@@ -222,7 +228,7 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-6">
         <RefreshCw className="text-emerald-500 animate-spin" size={48} />
-        <p className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.4em]">Sincronizando con la Nube...</p>
+        <p className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.4em]">Iniciando FuelMaster...</p>
       </div>
     );
   }
@@ -248,7 +254,7 @@ const App: React.FC = () => {
 
           <form onSubmit={handleAuth} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-slate-500 ml-4 tracking-widest">Credenciales de Acceso</label>
+              <label className="text-[10px] font-black uppercase text-slate-500 ml-4 tracking-widest">Acceso Sincronizado</label>
               <input 
                 type="email" 
                 value={authEmail} 
@@ -282,9 +288,6 @@ const App: React.FC = () => {
     );
   }
 
-  const kmRemaining = stats ? serviceConfig.nextServiceKm - stats.lastOdometer : 0;
-  const daysRemaining = getDaysRemaining(serviceConfig.nextServiceDate);
-
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-200 font-sans pb-20 selection:bg-emerald-500 selection:text-white">
       <nav className="h-28 bg-slate-900/80 backdrop-blur-xl border-b border-white/5 flex items-center px-10 sticky top-0 z-50">
@@ -310,6 +313,16 @@ const App: React.FC = () => {
       </nav>
 
       <main className="max-w-7xl mx-auto px-6 py-12">
+        {dbError && (
+          <div className="mb-10 p-6 bg-amber-500/10 border-2 border-amber-500/20 rounded-[2rem] flex items-start gap-6 animate-pulse">
+            <AlertCircle className="text-amber-500 shrink-0" size={32} />
+            <div>
+              <h4 className="text-amber-500 font-black uppercase text-sm tracking-widest mb-1">Configuración pendiente en Supabase</h4>
+              <p className="text-slate-400 text-sm font-medium">{dbError}</p>
+            </div>
+          </div>
+        )}
+
         {isSyncing && (
           <div className="fixed top-32 left-1/2 -translate-x-1/2 z-[100] bg-emerald-500 text-slate-900 px-10 py-4 rounded-full text-[10px] font-black uppercase animate-bounce shadow-2xl flex items-center gap-3 border-4 border-[#0f172a]">
             <RefreshCw size={16} className="animate-spin" /> Sincronizando datos...
@@ -345,11 +358,11 @@ const App: React.FC = () => {
                     <div className="space-y-8">
                       <div className="p-8 bg-slate-800/30 rounded-[2rem] border border-white/5">
                         <p className="text-[9px] font-black text-slate-500 uppercase mb-2">Próximo Service</p>
-                        <p className={`text-4xl font-black ${kmRemaining < 1000 ? 'text-red-500' : 'text-white'}`}>{kmRemaining.toLocaleString()} <span className="text-xs opacity-30">km</span></p>
+                        <p className={`text-4xl font-black ${getDaysRemaining(serviceConfig.nextServiceDate) < 30 ? 'text-red-500' : 'text-white'}`}>{(serviceConfig.nextServiceKm - (stats?.lastOdometer || 0)).toLocaleString()} <span className="text-xs opacity-30">km</span></p>
                       </div>
                       <div className="p-8 bg-slate-800/30 rounded-[2rem] border border-white/5">
                         <p className="text-[9px] font-black text-slate-500 uppercase mb-2">Fecha Estimada</p>
-                        <p className="text-4xl font-black text-blue-400">{daysRemaining} <span className="text-xs opacity-30">días</span></p>
+                        <p className="text-4xl font-black text-blue-400">{getDaysRemaining(serviceConfig.nextServiceDate)} <span className="text-xs opacity-30">días</span></p>
                       </div>
                     </div>
                   </div>
@@ -426,12 +439,10 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* Acciones Rápidas */}
       <button onClick={() => setShowNewEntry(true)} className="fixed bottom-12 right-12 w-20 h-20 bg-emerald-500 text-slate-900 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-40 shadow-emerald-500/30">
         <Plus size={36} />
       </button>
 
-      {/* Modales */}
       {showImport && (
         <div className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-8">
           <div className="bg-slate-900 w-full max-w-2xl rounded-[3.5rem] p-16 border border-white/5 relative shadow-2xl">
