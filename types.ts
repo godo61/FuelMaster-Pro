@@ -1,15 +1,14 @@
-
 export interface FuelEntry {
   id: string;
   date: string;
   kmInicial: number;
   kmFinal: number;
   distancia: number;
-  fuelAmount: number; // Litros
+  fuelAmount: number;
   pricePerLiter: number;
-  cost: number; // Gasto total del repostaje
-  consumption: number; // L/100km
-  kmPerLiter: number; // KM/Litro
+  cost: number;
+  consumption: number;
+  kmPerLiter: number;
   kmReserva?: string;
 }
 
@@ -47,7 +46,10 @@ export type VehicleCategory =
 
 export interface VehicleProfile {
   registrationDate: string;
+  lastItvDate?: string;
   category: VehicleCategory;
   brand?: string;
   model?: string;
+  lastServiceKm?: number; // Kilometraje del último mantenimiento
+  lastServiceDate?: string; // Fecha del último mantenimiento
 }
