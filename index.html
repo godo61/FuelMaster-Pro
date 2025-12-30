@@ -2,8 +2,17 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FuelMaster Pro - Toyota Analytics</title>
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#020617">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FuelMaster Pro">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2933/2933930.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -34,6 +43,9 @@
             color: var(--text-main);
             transition: background-color 0.3s ease, color 0.3s ease;
             min-height: 100vh;
+            /* Evitar scroll horizontal accidental en móviles */
+            overflow-x: hidden;
+            width: 100%;
         }
 
         .premium-card {
@@ -60,6 +72,14 @@
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 10px; }
+        
+        /* Ajustes específicos para iOS Safe Areas */
+        @supports (padding: env(safe-area-inset-top)) {
+            nav {
+                padding-top: env(safe-area-inset-top);
+                height: calc(6rem + env(safe-area-inset-top));
+            }
+        }
     </style>
 <script type="importmap">
 {
