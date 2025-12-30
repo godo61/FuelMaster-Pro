@@ -1,4 +1,5 @@
 
+
 import { FuelEntry, CalculatedEntry, SummaryStats } from '../types';
 
 export const parseToDate = (dateStr: string): Date => {

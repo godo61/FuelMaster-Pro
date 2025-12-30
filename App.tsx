@@ -1,15 +1,17 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Upload, Zap, Activity, Wrench, X, RefreshCw, Plus, 
   Euro, Navigation, Trash2, Fuel, TrendingUp, 
   Database, Cloud, Lock, 
   Download, LayoutDashboard, History, LogOut, Key, Mail,
-  AlertCircle, Smartphone, ChevronRight, Moon, Sun, Languages, Info, Send
+  AlertCircle, Smartphone, ChevronRight, Moon, Sun, Languages, Info, Send, ShieldCheck
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
-import { FuelEntry, CalculatedEntry, SummaryStats, ServiceConfig } from './types';
+import { FuelEntry, CalculatedEntry, SummaryStats, ServiceConfig, VehicleProfile, VehicleCategory } from './types';
 import { parseFuelCSV } from './utils/csvParser';
 import { calculateEntries, getSummaryStats, getDaysRemaining } from './utils/calculations';
+import { calculateNextITV } from './utils/itvLogic';
 import { exportToPDF } from './utils/pdfExport';
 import { downloadCSV } from './utils/csvExport';
 import { translations } from './utils/translations';
@@ -17,6 +19,7 @@ import StatCard from './components/StatCard';
 import FuelChart from './components/FuelChart';
 
 const LOCAL_STORAGE_KEY = 'fuelmaster_entries';
+const VEHICLE_KEY = 'fuelmaster_vehicle';
 const THEME_KEY = 'fuelmaster_theme';
 const LANG_KEY = 'fuelmaster_lang';
 
@@ -29,6 +32,12 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [view, setView] = useState<'dashboard' | 'history'>('dashboard');
   
+  // Vehicle Profile State
+  const [vehicleProfile, setVehicleProfile] = useState<VehicleProfile | null>(() => {
+    const saved = localStorage.getItem(VEHICLE_KEY);
+    return saved ? JSON.parse(saved) : null;
+  });
+
   // Settings States
   const [theme, setTheme] = useState<'dark' | 'light'>(localStorage.getItem(THEME_KEY) as 'dark' | 'light' || 'dark');
   const [lang, setLang] = useState<'es' | 'en'>(localStorage.getItem(LANG_KEY) as 'es' | 'en' || 'es');
@@ -152,13 +161,23 @@ const App: React.FC = () => {
 
   const handleBackup = () => {
     if (!backupEmail) return;
-    // Descargar CSV primero
     downloadCSV(calculatedEntries, `FuelMaster_Backup_${new Date().toISOString().slice(0,10)}.csv`);
-    // Abrir Mailto
     const subject = encodeURIComponent(`${t.appTitle} - Backup Data`);
     const body = encodeURIComponent(`Hola,\n\nAdjunto encontrarás el respaldo de mis datos de combustible de FuelMaster Pro.\n\nFecha: ${new Date().toLocaleDateString()}`);
     window.location.href = `mailto:${backupEmail}?subject=${subject}&body=${body}`;
     setShowBackupModal(false);
+  };
+
+  const handleSaveVehicle = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const profile: VehicleProfile = {
+      registrationDate: formData.get('regDate') as string,
+      category: formData.get('category') as VehicleCategory
+    };
+    setVehicleProfile(profile);
+    localStorage.setItem(VEHICLE_KEY, JSON.stringify(profile));
+    setShowHelp(false);
   };
 
   if (isLoading) {
@@ -218,6 +237,11 @@ const App: React.FC = () => {
     );
   }
 
+  // ITV Calculation for Dashboard
+  const itvDate = vehicleProfile ? calculateNextITV(vehicleProfile.registrationDate, vehicleProfile.category) : null;
+  const itvDays = itvDate ? getDaysRemaining(itvDate.toISOString()) : null;
+  const itvColor = itvDays === null ? 'bg-slate-500' : itvDays < 7 ? 'bg-rose-500' : itvDays < 30 ? 'bg-amber-500' : 'bg-emerald-500';
+
   return (
     <div className="min-h-screen pb-20">
       <nav className="h-24 bg-slate-950/40 backdrop-blur-xl border-b border-white/5 flex items-center px-10 sticky top-0 z-[60]">
@@ -266,6 +290,29 @@ const App: React.FC = () => {
                   <div className="premium-card p-10"><FuelChart data={calculatedEntries} type="efficiency" /></div>
                 </div>
                 <div className="space-y-6">
+                  {/* ITV Alert Card */}
+                  <div className="premium-card p-6 border-l-4 border-l-emerald-500">
+                    <h3 className="text-[10px] font-black uppercase text-emerald-400 mb-6 flex items-center gap-2"><ShieldCheck size={14} /> {t.itvTitle}</h3>
+                    {vehicleProfile ? (
+                      <div className="space-y-4">
+                        <div className={`p-4 rounded-xl ${itvColor} bg-opacity-10`}>
+                           <p className="text-[8px] font-bold text-slate-500 uppercase">{t.itvRemaining}</p>
+                           <p className={`text-xl font-black ${itvDays! < 30 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                              {itvDays! < 0 ? t.itvExpired : itvDays === 27375 ? t.itvExempt : `${itvDays} ${t.estDays.split(' ')[0]}`}
+                           </p>
+                        </div>
+                        <div className="bg-slate-900/40 p-4 rounded-xl">
+                          <p className="text-[8px] font-bold text-slate-500 uppercase">{t.date}</p>
+                          <p className="text-sm font-black">{itvDate?.toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <button onClick={() => setShowHelp(true)} className="w-full py-4 bg-slate-900 rounded-xl text-[8px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all">
+                        Configurar ITV
+                      </button>
+                    )}
+                  </div>
+
                   <div className="premium-card p-6">
                     <h3 className="text-[10px] font-black uppercase text-blue-400 mb-6 flex items-center gap-2"><Wrench size={14} /> {t.maintenance}</h3>
                     <div className="space-y-4">
@@ -327,7 +374,7 @@ const App: React.FC = () => {
         <Plus size={28} />
       </button>
 
-      {/* Modals */}
+      {/* Backup Modal */}
       {showBackupModal && (
         <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-8 animate-fade-in">
           <div className="premium-card w-full max-w-md p-10 relative">
@@ -343,11 +390,52 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {/* Help & Vehicle Settings Modal */}
       {showHelp && (
         <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-8 animate-fade-in overflow-y-auto">
           <div className="premium-card w-full max-w-2xl p-12 relative my-auto">
             <button onClick={() => setShowHelp(false)} className="absolute top-8 right-8 text-slate-500"><X size={32}/></button>
             <div className="space-y-8">
+              {/* Vehicle Profile Form */}
+              <div className="p-8 bg-emerald-500/5 rounded-3xl border border-emerald-500/10">
+                <div className="flex items-center gap-4 mb-8">
+                  <Smartphone size={32} className="text-emerald-500" />
+                  <h3 className="text-2xl font-black italic uppercase">{t.vehicleProfile}</h3>
+                </div>
+                <form onSubmit={handleSaveVehicle} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div className="space-y-2">
+                      <label className="text-[9px] font-black text-slate-500 uppercase">{t.regDate}</label>
+                      <input 
+                        name="regDate" 
+                        type="date" 
+                        defaultValue={vehicleProfile?.registrationDate}
+                        className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500" 
+                        required 
+                      />
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[9px] font-black text-slate-500 uppercase">{t.vehicleType}</label>
+                      <select 
+                        name="category" 
+                        defaultValue={vehicleProfile?.category || 'turismo'}
+                        className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500 appearance-none"
+                      >
+                        <option value="turismo">{t.cat_turismo}</option>
+                        <option value="motocicleta">{t.cat_motocicleta}</option>
+                        <option value="ciclomotor">{t.cat_ciclomotor}</option>
+                        <option value="furgoneta">{t.cat_furgoneta}</option>
+                        <option value="pesado">{t.cat_pesado}</option>
+                        <option value="autobus">{t.cat_autobus}</option>
+                        <option value="caravana">{t.cat_caravana}</option>
+                        <option value="historico">{t.cat_historico}</option>
+                      </select>
+                   </div>
+                   <button type="submit" className="md:col-span-2 py-4 bg-emerald-500 text-slate-950 rounded-xl font-black uppercase text-[10px] tracking-widest mt-2">
+                      {t.saveProfile}
+                   </button>
+                </form>
+              </div>
+
               <div className="flex items-center gap-4">
                 <Info size={32} className="text-emerald-500" />
                 <h3 className="text-2xl font-black italic uppercase">{t.helpTitle}</h3>

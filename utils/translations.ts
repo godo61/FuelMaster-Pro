@@ -1,3 +1,4 @@
+
 export const translations = {
   es: {
     appTitle: "FuelMaster Pro",
@@ -15,7 +16,9 @@ export const translations = {
     liters: "Litros",
     odometer: "Odómetro",
     maintenance: "MANTENIMIENTO",
+    itvTitle: "PRÓXIMA ITV",
     remaining: "Restante Revisión",
+    itvRemaining: "Días para ITV",
     estDays: "Días Estimados",
     noData: "Sin Datos",
     newEntry: "Nuevo Registro",
@@ -37,7 +40,21 @@ export const translations = {
     helpSection2: "2. Mantenimiento: El sistema calcula automáticamente cuánto falta para tu próxima revisión basada en el odómetro actual.",
     helpSection3: "3. Backup: Recomendamos realizar un backup mensual por email para asegurar tus datos.",
     emailPlaceholder: "tu@email.com",
-    sendBackup: "Generar Backup y Enviar"
+    sendBackup: "Generar Backup y Enviar",
+    vehicleProfile: "Perfil del Vehículo",
+    regDate: "Fecha Matriculación",
+    vehicleType: "Tipo de Vehículo",
+    saveProfile: "Guardar Perfil",
+    itvExempt: "Vehículo Exento",
+    itvExpired: "ITV CADUCADA",
+    cat_turismo: "Turismo Particular",
+    cat_motocicleta: "Motocicleta / Quad",
+    cat_ciclomotor: "Ciclomotor",
+    cat_furgoneta: "Furgoneta (≤3.5t)",
+    cat_pesado: "Pesado (>3.5t)",
+    cat_autobus: "Autobús",
+    cat_caravana: "Caravana (>750kg)",
+    cat_historico: "Vehículo Histórico"
   },
   en: {
     appTitle: "FuelMaster Pro",
@@ -55,7 +72,9 @@ export const translations = {
     liters: "Liters",
     odometer: "Odometer",
     maintenance: "MAINTENANCE",
+    itvTitle: "NEXT ITV",
     remaining: "Remaining Service",
+    itvRemaining: "Days to ITV",
     estDays: "Est. Days",
     noData: "No Data",
     newEntry: "New Entry",
@@ -77,6 +96,20 @@ export const translations = {
     helpSection2: "2. Maintenance: The system automatically calculates distance to your next service based on the current odometer.",
     helpSection3: "3. Backup: We recommend a monthly email backup to secure your data.",
     emailPlaceholder: "your@email.com",
-    sendBackup: "Generate Backup & Send"
+    sendBackup: "Generate Backup & Send",
+    vehicleProfile: "Vehicle Profile",
+    regDate: "Registration Date",
+    vehicleType: "Vehicle Type",
+    saveProfile: "Save Profile",
+    itvExempt: "Exempt Vehicle",
+    itvExpired: "ITV EXPIRED",
+    cat_turismo: "Private Car",
+    cat_motocicleta: "Motorcycle / Quad",
+    cat_ciclomotor: "Moped",
+    cat_furgoneta: "Van (≤3.5t)",
+    cat_pesado: "Heavy (>3.5t)",
+    cat_autobus: "Bus",
+    cat_caravana: "Caravan (>750kg)",
+    cat_historico: "Historic Vehicle"
   }
 };

@@ -34,3 +34,20 @@ export interface ServiceConfig {
   nextServiceKm: number;
   nextServiceDate: string;
 }
+
+export type VehicleCategory = 
+  | 'turismo' 
+  | 'motocicleta' 
+  | 'ciclomotor' 
+  | 'furgoneta' 
+  | 'pesado' 
+  | 'autobus' 
+  | 'caravana' 
+  | 'historico';
+
+export interface VehicleProfile {
+  registrationDate: string;
+  category: VehicleCategory;
+  brand?: string;
+  model?: string;
+}

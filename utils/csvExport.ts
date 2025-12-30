@@ -1,4 +1,5 @@
 
+
 import { CalculatedEntry } from '../types';
 
 export const generateCSV = (entries: CalculatedEntry[]): string => {
