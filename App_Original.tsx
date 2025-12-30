@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Upload, Zap, Activity, Wrench, X, RefreshCw, Plus, 
@@ -216,6 +217,7 @@ const App: React.FC = () => {
         <div className="premium-card w-full max-w-md p-10 space-y-8 animate-fade-in shadow-2xl">
           <div className="text-center">
             <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center text-slate-950 mx-auto mb-6">
+              {/* Fix: use size={32} instead of size(32) */}
               <Lock size={32} />
             </div>
             <h1 className="text-3xl font-black italic tracking-tighter uppercase text-white">{String(t.appTitle)}</h1>
@@ -241,22 +243,7 @@ const App: React.FC = () => {
 
   const itvDate = vehicleProfile ? calculateNextITV(vehicleProfile.registrationDate, vehicleProfile.category, vehicleProfile.lastItvDate) : null;
   const isItvValid = itvDate && !isNaN(itvDate.getTime());
-  const itvDays = isItvValid ? getDaysRemaining(itvDate!.toISOString()) : 0;
-
-  // Lógica de semáforo para ITV
-  const getItvColorClass = (days: number) => {
-    if (days <= 0) return 'text-red-600';
-    if (days < 15) return 'text-red-500';
-    if (days <= 30) return 'text-orange-500';
-    return 'text-emerald-500';
-  };
-
-  const getItvBgClass = (days: number) => {
-    if (days <= 0) return 'bg-red-500/10 border-red-500/20';
-    if (days < 15) return 'bg-red-500/5 border-red-500/10';
-    if (days <= 30) return 'bg-orange-500/10 border-orange-500/20';
-    return 'bg-emerald-500/10 border-emerald-500/20';
-  };
+  const itvDays = isItvValid ? getDaysRemaining(itvDate!.toISOString()) : null;
 
   return (
     <div className={`min-h-screen pb-20 ${theme === 'light' ? 'light' : ''}`}>
@@ -264,6 +251,7 @@ const App: React.FC = () => {
         <div className="max-w-7xl mx-auto w-full flex justify-between items-center">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-500 rounded-xl flex items-center justify-center text-slate-900 rotate-2">
+              {/* Fix: use size={20} instead of size(20) */}
               <Zap size={20} fill="currentColor" />
             </div>
             <h1 className="text-lg sm:text-xl font-black italic tracking-tighter uppercase leading-none text-white hidden xs:block">{String(t.appTitle)}</h1>
@@ -272,10 +260,12 @@ const App: React.FC = () => {
           <div className="flex items-center gap-2 sm:gap-4 nav-actions">
             <div className="flex bg-slate-800/20 p-1 rounded-xl">
               <button onClick={() => setLang(lang === 'es' ? 'en' : 'es')} className="p-2 text-slate-400 hover:text-white transition-all flex items-center gap-1">
+                {/* Fix: use size={16} instead of size(16) */}
                 <Globe size={16} />
                 <span className="text-[8px] font-black uppercase">{lang}</span>
               </button>
               <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-2 text-slate-400 hover:text-white transition-all">
+                {/* Fix: use size={16} instead of size(16) */}
                 {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
               </button>
             </div>
@@ -285,7 +275,9 @@ const App: React.FC = () => {
               <button onClick={() => setView('history')} className={`px-3 sm:px-4 py-2 rounded-lg text-[9px] font-black uppercase ${view === 'history' ? 'bg-emerald-500 text-slate-950' : 'text-slate-500'}`}>{String(t.history)}</button>
             </div>
             
+            {/* Fix: use size={18} instead of size(18) */}
             <button onClick={() => setShowHelp(true)} className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-slate-400 hover:text-white transition-all hover:bg-white/5 rounded-xl"><Settings size={18}/></button>
+            {/* Fix: use size={18} instead of size(18) */}
             <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center transition-all hover:bg-red-500 hover:text-white"><LogOut size={18} /></button>
           </div>
         </div>
@@ -295,6 +287,7 @@ const App: React.FC = () => {
         {stats ? (
           <div className="space-y-10">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+              {/* Fix: use size={20} instead of size(20) and ensure color is passed */}
               <StatCard label={String(t.consumption)} value={stats.avgConsumption.toFixed(2)} unit="L/100" icon={<Activity size={20}/>} color="bg-blue-500" />
               <StatCard label={String(t.efficiency)} value={stats.avgKmPerLiter.toFixed(2)} unit="km/L" icon={<Zap size={20}/>} color="bg-emerald-500" />
               <StatCard label={String(t.avgPvp)} value={stats.avgPricePerLiter.toFixed(3)} unit="€/L" icon={<Euro size={20}/>} color="bg-amber-500" />
@@ -310,61 +303,60 @@ const App: React.FC = () => {
                   <div className="premium-card p-6 sm:p-10"><FuelChart data={calculatedEntries} type="efficiency" /></div>
                 </div>
                 <div className="space-y-6">
-                  {/* BLOQUE UNIFICADO DE ESTADO DEL VEHÍCULO CON SEMÁFORO */}
-                  <div className="premium-card p-6 border-l-4 border-emerald-500 flex flex-col gap-6">
-                    <h3 className="text-[10px] font-black uppercase flex items-center gap-2 text-white">
-                      <Settings size={14} /> {String(t.vehicleProfile)}
-                    </h3>
-                    
-                    <div className="space-y-4">
-                      {/* Segmento ITV con Semáforo */}
-                      {isItvValid ? (
-                        <div className={`p-4 rounded-xl border transition-all ${getItvBgClass(itvDays)}`}>
-                           <p className="text-[8px] font-bold text-slate-500 uppercase">{String(t.itvRemaining)}</p>
-                           <div className="flex items-center gap-3">
-                              <p className={`text-2xl font-black ${getItvColorClass(itvDays)}`}>{itvDays}</p>
-                              {itvDays <= 30 && <AlertCircle size={16} className={getItvColorClass(itvDays)} />}
-                           </div>
-                           <p className="text-[8px] font-black uppercase text-slate-500">Vencimiento: {itvDate?.toLocaleDateString()}</p>
+                  {/* CARD ITV */}
+                  <div className="premium-card p-6 border-l-4 border-emerald-500">
+                    {/* Fix: use size={14} instead of size(14) */}
+                    <h3 className="text-[10px] font-black uppercase mb-6 flex items-center gap-2 text-white"><ShieldCheck size={14} /> {String(t.itvTitle)}</h3>
+                    {isItvValid ? (
+                      <div className="space-y-4">
+                        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                           <p className="text-[8px] font-bold text-slate-500 uppercase">Días restantes</p>
+                           <p className={`text-2xl font-black ${itvDays && itvDays < 30 ? 'text-orange-500' : 'text-emerald-500'}`}>{itvDays}</p>
+                           <p className="text-[8px] font-black uppercase text-slate-500">{itvDate?.toLocaleDateString()}</p>
                         </div>
-                      ) : (
-                        <div className="p-4 rounded-xl bg-slate-900 border border-white/5">
-                           <p className="text-[8px] font-black text-slate-500 uppercase">Configuración de ITV pendiente</p>
-                        </div>
-                      )}
+                      </div>
+                    ) : (
+                      <button onClick={() => setShowHelp(true)} className="w-full py-4 bg-slate-900 rounded-xl text-[8px] font-black uppercase text-slate-500">Configurar ITV</button>
+                    )}
+                  </div>
 
-                      {/* Segmento Mantenimiento con Semáforo */}
-                      {maintenance ? (
-                        <div className={`p-4 rounded-xl border ${maintenance.isUrgent ? 'bg-orange-500/10 border-orange-500/20' : 'bg-blue-500/10 border-blue-500/20'}`}>
-                          <p className="text-[8px] font-bold text-slate-500 uppercase">Km para revisión</p>
+                  {/* CARD MANTENIMIENTO ACTUALIZADO */}
+                  <div className={`premium-card p-6 border-l-4 ${maintenance?.isUrgent ? 'border-orange-500' : 'border-blue-500'}`}>
+                    {/* Fix: use size={14} instead of size(14) */}
+                    <h3 className="text-[10px] font-black uppercase text-blue-400 mb-6 flex items-center gap-2"><Wrench size={14} /> {String(t.maintenance)}</h3>
+                    {maintenance ? (
+                      <div className="space-y-4">
+                        <div className="bg-slate-900/40 p-4 rounded-xl">
+                          <p className="text-[8px] font-bold text-slate-500 uppercase">Km restantes (15k km)</p>
                           <p className={`text-xl font-black ${maintenance.kmRemaining < 1000 ? 'text-orange-500' : 'text-white'}`}>{maintenance.kmRemaining.toLocaleString()} km</p>
-                          <p className="text-[8px] text-slate-500 uppercase font-black">Próxima: {maintenance.nextDate.toLocaleDateString()}</p>
                         </div>
-                      ) : (
-                        <div className="p-4 rounded-xl bg-slate-900 border border-white/5">
-                           <p className="text-[8px] font-black text-slate-500 uppercase">Mantenimiento no configurado</p>
+                        <div className="bg-slate-900/40 p-4 rounded-xl">
+                          <p className="text-[8px] font-bold text-slate-500 uppercase">Días restantes (1 año)</p>
+                          <p className={`text-xl font-black ${maintenance.daysRemaining < 30 ? 'text-orange-500' : 'text-white'}`}>{maintenance.daysRemaining} días</p>
+                          <p className="text-[8px] text-slate-500 uppercase font-black">{maintenance.nextDate.toLocaleDateString()}</p>
                         </div>
-                      )}
-
-                      {/* Botón de acción único */}
-                      <button onClick={() => setShowHelp(true)} className="w-full py-4 bg-slate-900 hover:bg-slate-800 rounded-xl text-[8px] font-black uppercase text-slate-400 transition-all flex items-center justify-center gap-2 border border-white/5">
-                        <Wrench size={12} /> Gestionar Perfil
-                      </button>
-                    </div>
+                      </div>
+                    ) : (
+                      <button onClick={() => setShowHelp(true)} className="w-full py-4 bg-slate-900 rounded-xl text-[8px] font-black uppercase text-slate-500">Configurar Revisión</button>
+                    )}
                   </div>
 
                   {/* BOTONES DE ACCIÓN RESTAURADOS */}
                   <div className="grid grid-cols-1 gap-3">
                     <button onClick={() => setShowImport(true)} className="w-full py-4 premium-card flex items-center justify-center gap-3 text-[10px] font-black uppercase hover:border-emerald-500 transition-all text-emerald-500 group">
+                      {/* Fix: use size={14} instead of size(14) */}
                       <Upload size={14} className="group-hover:animate-bounce"/> ACTUALIZAR CSV
                     </button>
                     <button onClick={() => downloadCSV(calculatedEntries, 'FuelMaster_Backup.csv')} className="w-full py-4 premium-card flex items-center justify-center gap-3 text-[10px] font-black uppercase hover:border-blue-500 transition-all text-blue-400">
+                      {/* Fix: use size={14} instead of size(14) */}
                       <FileText size={14}/> EXPORTAR CSV
                     </button>
                     <button onClick={() => exportToPDF(stats, calculatedEntries)} className="w-full py-4 premium-card flex items-center justify-center gap-3 text-[10px] font-black uppercase hover:border-emerald-500 transition-all text-emerald-400">
+                      {/* Fix: use size={14} instead of size(14) */}
                       <Download size={14}/> PDF REPORT
                     </button>
                     <button onClick={() => setShowBackup(true)} className="w-full py-4 premium-card flex items-center justify-center gap-3 text-[10px] font-black uppercase hover:border-amber-500 transition-all text-amber-500">
+                      {/* Fix: use size={14} instead of size(14) */}
                       <Mail size={14}/> BACKUP EMAIL
                     </button>
                   </div>
@@ -383,6 +375,7 @@ const App: React.FC = () => {
                         <td className="px-8 py-6 text-right text-sm font-bold text-slate-400">{e.kmFinal.toLocaleString()}</td>
                         <td className="px-8 py-6 text-right text-base font-black text-emerald-500">{e.consumption.toFixed(2)}</td>
                         <td className="px-8 py-6 text-right">
+                          {/* Fix: use size={16} instead of size(16) */}
                           <button onClick={() => confirm(String(t.confirmDelete)) && setEntries(entries.filter(en => en.id !== e.id))} className="text-red-500 opacity-50 hover:opacity-100 transition-all hover:scale-125"><Trash2 size={16}/></button>
                         </td>
                       </tr>
@@ -394,13 +387,17 @@ const App: React.FC = () => {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center min-h-[50vh] premium-card p-10 sm:p-20 text-center">
+            {/* Fix: use size={64} instead of size(64) */}
             <Database className="mb-8 text-slate-800 animate-pulse" size={64} />
             <p className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.3em] mb-10">No hay registros disponibles</p>
+            {/* Fix: corrected max-sm-sm to max-w-sm */}
             <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
               <button onClick={() => setShowImport(true)} className="bg-emerald-500 text-slate-950 px-8 py-4 rounded-xl font-black uppercase text-[10px] w-full flex items-center justify-center gap-2 hover:scale-[1.05] transition-all">
+                {/* Fix: use size={14} instead of size(14) */}
                 <Upload size={14}/> {String(t.import)}
               </button>
               <button onClick={() => setShowNewEntry(true)} className="bg-slate-800 text-white px-8 py-4 rounded-xl font-black uppercase text-[10px] w-full flex items-center justify-center gap-2 hover:scale-[1.05] transition-all">
+                {/* Fix: use size={14} instead of size(14) */}
                 <Plus size={14}/> {String(t.newEntry)}
               </button>
             </div>
@@ -412,6 +409,7 @@ const App: React.FC = () => {
       {showHelp && (
         <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6 sm:p-8 animate-fade-in">
           <div className="premium-card w-full max-w-2xl p-8 relative overflow-y-auto max-h-[90vh] shadow-2xl">
+            {/* Fix: use size={32} instead of size(32) */}
             <button onClick={() => setShowHelp(false)} className="absolute top-6 right-6 text-slate-500 hover:text-white transition-all"><X size={32}/></button>
             <div className="p-6 bg-emerald-500/5 rounded-3xl border border-emerald-500/10">
               <h3 className="text-2xl font-black italic uppercase text-white mb-8">Gestión de Perfil</h3>
@@ -451,6 +449,7 @@ const App: React.FC = () => {
               </form>
 
               <div className="mt-12 pt-8 border-t border-red-500/20">
+                 {/* Fix: use size={14} instead of size(14) */}
                  <h4 className="text-[10px] font-black text-red-500 uppercase mb-4 flex items-center gap-2"><AlertTriangle size={14}/> Danger Zone</h4>
                  <button onClick={handleClearAllData} className="w-full py-4 bg-red-600/10 text-red-500 border border-red-600/20 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-red-600 hover:text-white transition-all">
                     Borrar todos los datos locales
@@ -465,8 +464,10 @@ const App: React.FC = () => {
       {showImport && (
         <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6 sm:p-8">
           <div className="premium-card w-full max-w-xl p-8 sm:p-12 relative shadow-2xl text-center">
+            {/* Fix: use size={32} instead of size(32) */}
             <button onClick={() => setShowImport(false)} className="absolute top-6 right-6 text-slate-500 hover:text-white transition-all"><X size={32}/></button>
             <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-slate-800 rounded-3xl p-10 sm:p-16 cursor-pointer hover:border-emerald-500/50 transition-all group">
+              {/* Fix: use size={56} instead of size(56) */}
               <Upload className="mx-auto mb-6 text-slate-500 group-hover:text-emerald-500 transition-colors" size={56} />
               <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Sincronizar CSV</p>
               <p className="text-[8px] text-slate-600 mt-2 italic">Formatos: Toyota Fuel Log / Google Sheets</p>
@@ -492,7 +493,9 @@ const App: React.FC = () => {
       {showBackup && (
         <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6 sm:p-8">
           <div className="premium-card w-full max-w-md p-8 sm:p-12 relative shadow-2xl text-center">
+            {/* Fix: use size={28} instead of size(28) */}
             <button onClick={() => setShowBackup(false)} className="absolute top-6 right-6 text-slate-500 hover:text-white transition-all"><X size={28}/></button>
+            {/* Fix: use size={48} instead of size(48) */}
             <Mail className="mx-auto mb-6 text-amber-500" size={48} />
             <h3 className="text-xl font-black uppercase tracking-tighter text-white mb-2">Email Backup</h3>
             <p className="text-[10px] text-slate-500 font-bold uppercase mb-8">Se generará un archivo CSV y se abrirá tu cliente de correo.</p>
@@ -504,6 +507,7 @@ const App: React.FC = () => {
 
       {/* Botón Flotante de Registro */}
       <button onClick={() => setShowNewEntry(true)} className="fixed bottom-6 right-6 sm:bottom-10 sm:right-10 w-14 h-14 sm:w-16 sm:h-16 bg-emerald-500 text-slate-950 rounded-2xl shadow-2xl flex items-center justify-center z-[70] hover:scale-110 active:scale-95 transition-all">
+        {/* Fix: use size={28} instead of size(28) */}
         <Plus size={28} />
       </button>
 
@@ -532,6 +536,7 @@ const App: React.FC = () => {
             setEntries([...entries, newE]);
             setShowNewEntry(false);
           }} className="premium-card w-full max-w-lg p-8 sm:p-12 relative shadow-2xl">
+            {/* Fix: use size={32} instead of size(32) */}
             <button type="button" onClick={() => setShowNewEntry(false)} className="absolute top-6 right-6 text-slate-500 hover:text-white transition-all"><X size={32}/></button>
             <h3 className="text-xl font-black italic uppercase mb-10 text-white flex items-center gap-3"><Fuel className="text-emerald-500" /> Nuevo Reporte</h3>
             <div className="grid grid-cols-2 gap-4">

@@ -12,7 +12,7 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, unit, icon, color }) 
   return (
     <div className="premium-card p-6 flex flex-col justify-between group overflow-hidden">
       <div className="flex items-start justify-between">
-        <div className={`p-3 rounded-xl ${color} bg-opacity-20 text-white shadow-lg`}>
+        <div className={`p-3 rounded-xl ${color} bg-opacity-100 dark:bg-opacity-20 text-white shadow-lg transition-all`}>
           {icon}
         </div>
         <div className="h-1 w-8 bg-slate-500/10 rounded-full mt-2"></div>
