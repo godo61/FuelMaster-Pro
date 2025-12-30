@@ -15,15 +15,15 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, unit, icon, color }) 
         <div className={`p-3 rounded-xl ${color} bg-opacity-20 text-white shadow-lg`}>
           {icon}
         </div>
-        <div className="h-1 w-8 bg-white/5 rounded-full mt-2"></div>
+        <div className="h-1 w-8 bg-slate-500/10 rounded-full mt-2"></div>
       </div>
       <div className="mt-6">
         <h3 className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">{label}</h3>
         <div className="flex items-baseline gap-1">
-          <span className="text-2xl font-black text-white group-hover:text-emerald-400 transition-colors">
+          <span className="text-2xl font-black group-hover:text-emerald-500 transition-colors">
             {value}
           </span>
-          {unit && <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter">{unit}</span>}
+          {unit && <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{unit}</span>}
         </div>
       </div>
     </div>
