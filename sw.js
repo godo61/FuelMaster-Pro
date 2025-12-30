@@ -1,24 +1,29 @@
-// Service Worker minimalista para cumplir con los requisitos de instalación PWA
 const CACHE_NAME = 'fuelmaster-v1';
 const ASSETS = [
   './',
   './index.html',
-  './manifest.json',
-  'https://cdn-icons-png.flaticon.com/512/2933/2933930.png'
+  './manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
+      // Usamos addAll de forma segura
+      return cache.addAll(ASSETS).catch(err => console.log("Cache error during install:", err));
     })
   );
 });
 
 self.addEventListener('fetch', (event) => {
+  // Solo cachear peticiones GET
+  if (event.request.method !== 'GET') return;
+  
   event.respondWith(
     caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
+      return response || fetch(event.request).catch(() => {
+        // Fallback si no hay red ni cache
+        return caches.match('./index.html');
+      });
     })
   );
 });
