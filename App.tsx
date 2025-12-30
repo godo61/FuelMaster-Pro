@@ -6,7 +6,7 @@ import {
   AlertCircle, Calendar, Sun, Moon, Mail, FileText, Globe, Settings, AlertTriangle
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
-import { FuelEntry, CalculatedEntry, SummaryStats, ServiceConfig, VehicleProfile, VehicleCategory } from './types';
+import { FuelEntry, CalculatedEntry, SummaryStats, VehicleProfile, VehicleCategory } from './types';
 import { parseFuelCSV } from './utils/csvParser';
 import { calculateEntries, getSummaryStats, getDaysRemaining } from './utils/calculations';
 import { calculateNextITV } from './utils/itvLogic';
@@ -108,14 +108,15 @@ const App: React.FC = () => {
   const fetchUserData = async (userId: string) => {
     if (!isSupabaseConfigured) return;
     try {
-      const { data, error } = await supabase
+      // 1. Fetch Repostajes
+      const { data: entriesData, error: entriesError } = await supabase
         .from('fuel_entries')
         .select('*')
         .eq('user_id', userId)
         .order('km_final', { ascending: true });
-      if (error) throw error;
-      if (data) {
-        const mapped: FuelEntry[] = data.map(d => ({
+      
+      if (!entriesError && entriesData) {
+        const mapped: FuelEntry[] = entriesData.map(d => ({
           id: String(d.id),
           date: String(d.date),
           kmInicial: Number(d.km_inicial),
@@ -128,6 +129,25 @@ const App: React.FC = () => {
           kmPerLiter: 0
         }));
         setEntries(mapped);
+      }
+
+      // 2. Fetch Perfil de Vehículo
+      const { data: profileData, error: profileError } = await supabase
+        .from('vehicle_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (!profileError && profileData) {
+        const profile: VehicleProfile = {
+          registrationDate: profileData.registration_date,
+          lastItvDate: profileData.last_itv_date,
+          category: profileData.category as VehicleCategory,
+          lastServiceKm: profileData.last_service_km,
+          lastServiceDate: profileData.last_service_date
+        };
+        setVehicleProfile(profile);
+        localStorage.setItem(VEHICLE_KEY, JSON.stringify(profile));
       }
     } catch (e) { loadLocalData(); }
   };
@@ -144,7 +164,7 @@ const App: React.FC = () => {
     }
   }, [entries]);
 
-  const handleSaveVehicle = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveVehicle = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const profile: VehicleProfile = {
@@ -154,9 +174,36 @@ const App: React.FC = () => {
       lastServiceKm: Number(formData.get('lastServiceKm')) || undefined,
       lastServiceDate: formData.get('lastServiceDate') as string || undefined
     };
+
     setVehicleProfile(profile);
     localStorage.setItem(VEHICLE_KEY, JSON.stringify(profile));
+
+    if (session?.user?.id && isSupabaseConfigured) {
+      try {
+        await supabase.from('vehicle_profiles').upsert({
+          user_id: session.user.id,
+          registration_date: profile.registrationDate,
+          last_itv_date: profile.lastItvDate,
+          category: profile.category,
+          last_service_km: profile.lastServiceKm,
+          last_service_date: profile.lastServiceDate
+        });
+      } catch (err) { console.error("Cloud Sync Error (Profile):", err); }
+    }
+    
     setShowHelp(false);
+  };
+
+  const deleteEntry = async (id: string) => {
+    if (!confirm(String(t.confirmDelete))) return;
+    
+    if (session?.user?.id && isSupabaseConfigured) {
+      try {
+        await supabase.from('fuel_entries').delete().eq('id', id);
+      } catch (err) { console.error("Cloud Sync Error (Delete):", err); }
+    }
+    
+    setEntries(entries.filter(e => e.id !== id));
   };
 
   const handleBackupEmail = (email: string) => {
@@ -243,7 +290,6 @@ const App: React.FC = () => {
   const isItvValid = itvDate && !isNaN(itvDate.getTime());
   const itvDays = isItvValid ? getDaysRemaining(itvDate!.toISOString()) : 0;
 
-  // Lógica de semáforo para ITV
   const getItvColorClass = (days: number) => {
     if (days <= 0) return 'text-red-600';
     if (days < 15) return 'text-red-500';
@@ -310,14 +356,12 @@ const App: React.FC = () => {
                   <div className="premium-card p-6 sm:p-10"><FuelChart data={calculatedEntries} type="efficiency" /></div>
                 </div>
                 <div className="space-y-6">
-                  {/* BLOQUE UNIFICADO DE ESTADO DEL VEHÍCULO CON SEMÁFORO */}
                   <div className="premium-card p-6 border-l-4 border-emerald-500 flex flex-col gap-6">
                     <h3 className="text-[10px] font-black uppercase flex items-center gap-2 text-white">
                       <Settings size={14} /> {String(t.vehicleProfile)}
                     </h3>
                     
                     <div className="space-y-4">
-                      {/* Segmento ITV con Semáforo */}
                       {isItvValid ? (
                         <div className={`p-4 rounded-xl border transition-all ${getItvBgClass(itvDays)}`}>
                            <p className="text-[8px] font-bold text-slate-500 uppercase">{String(t.itvRemaining)}</p>
@@ -333,7 +377,6 @@ const App: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Segmento Mantenimiento con Semáforo */}
                       {maintenance ? (
                         <div className={`p-4 rounded-xl border ${maintenance.isUrgent ? 'bg-orange-500/10 border-orange-500/20' : 'bg-blue-500/10 border-blue-500/20'}`}>
                           <p className="text-[8px] font-bold text-slate-500 uppercase">Km para revisión</p>
@@ -346,14 +389,12 @@ const App: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Botón de acción único */}
                       <button onClick={() => setShowHelp(true)} className="w-full py-4 bg-slate-900 hover:bg-slate-800 rounded-xl text-[8px] font-black uppercase text-slate-400 transition-all flex items-center justify-center gap-2 border border-white/5">
                         <Wrench size={12} /> Gestionar Perfil
                       </button>
                     </div>
                   </div>
 
-                  {/* BOTONES DE ACCIÓN RESTAURADOS */}
                   <div className="grid grid-cols-1 gap-3">
                     <button onClick={() => setShowImport(true)} className="w-full py-4 premium-card flex items-center justify-center gap-3 text-[10px] font-black uppercase hover:border-emerald-500 transition-all text-emerald-500 group">
                       <Upload size={14} className="group-hover:animate-bounce"/> ACTUALIZAR CSV
@@ -383,7 +424,7 @@ const App: React.FC = () => {
                         <td className="px-8 py-6 text-right text-sm font-bold text-slate-400">{e.kmFinal.toLocaleString()}</td>
                         <td className="px-8 py-6 text-right text-base font-black text-emerald-500">{e.consumption.toFixed(2)}</td>
                         <td className="px-8 py-6 text-right">
-                          <button onClick={() => confirm(String(t.confirmDelete)) && setEntries(entries.filter(en => en.id !== e.id))} className="text-red-500 opacity-50 hover:opacity-100 transition-all hover:scale-125"><Trash2 size={16}/></button>
+                          <button onClick={() => deleteEntry(e.id)} className="text-red-500 opacity-50 hover:opacity-100 transition-all hover:scale-125"><Trash2 size={16}/></button>
                         </td>
                       </tr>
                     ))}
@@ -408,7 +449,6 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* MODAL CONFIGURACIÓN CON ZONA DE PELIGRO */}
       {showHelp && (
         <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6 sm:p-8 animate-fade-in">
           <div className="premium-card w-full max-w-2xl p-8 relative overflow-y-auto max-h-[90vh] shadow-2xl">
@@ -461,7 +501,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL IMPORTACIÓN */}
       {showImport && (
         <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6 sm:p-8">
           <div className="premium-card w-full max-w-xl p-8 sm:p-12 relative shadow-2xl text-center">
@@ -478,6 +517,21 @@ const App: React.FC = () => {
                reader.onload = async (evt) => {
                  try {
                    const parsed = parseFuelCSV(evt.target?.result as string);
+                   
+                   if (session?.user?.id && isSupabaseConfigured) {
+                     const toInsert = parsed.map(p => ({
+                       user_id: session.user.id,
+                       date: p.date,
+                       km_inicial: p.kmInicial,
+                       km_final: p.kmFinal,
+                       fuel_amount: p.fuelAmount,
+                       price_per_liter: p.pricePerLiter,
+                       cost: p.cost,
+                       distancia: p.distancia
+                     }));
+                     await supabase.from('fuel_entries').insert(toInsert);
+                   }
+                   
                    setEntries(parsed);
                    setShowImport(false);
                  } catch(err) { alert("Error al procesar CSV. Revisa el formato."); }
@@ -488,7 +542,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL BACKUP EMAIL */}
       {showBackup && (
         <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6 sm:p-8">
           <div className="premium-card w-full max-w-md p-8 sm:p-12 relative shadow-2xl text-center">
@@ -502,12 +555,10 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Botón Flotante de Registro */}
       <button onClick={() => setShowNewEntry(true)} className="fixed bottom-6 right-6 sm:bottom-10 sm:right-10 w-14 h-14 sm:w-16 sm:h-16 bg-emerald-500 text-slate-950 rounded-2xl shadow-2xl flex items-center justify-center z-[70] hover:scale-110 active:scale-95 transition-all">
         <Plus size={28} />
       </button>
 
-      {/* MODAL NUEVO REGISTRO */}
       {showNewEntry && (
         <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6 sm:p-8">
           <form onSubmit={async (e) => {
@@ -517,6 +568,7 @@ const App: React.FC = () => {
             const kf = Number(newEntryForm.kmFinal);
             const prev = calculatedEntries[calculatedEntries.length - 1];
             const ki = prev ? prev.kmFinal : kf - 500;
+            
             const newE: FuelEntry = { 
               id: `en-${Date.now()}`, 
               date: newEntryForm.date.split('-').reverse().join('/'), 
@@ -529,6 +581,26 @@ const App: React.FC = () => {
               consumption: 0, 
               kmPerLiter: 0 
             };
+
+            if (session?.user?.id && isSupabaseConfigured) {
+              try {
+                const { data } = await supabase.from('fuel_entries').insert([{
+                  user_id: session.user.id,
+                  date: newE.date,
+                  km_inicial: newE.kmInicial,
+                  km_final: newE.kmFinal,
+                  fuel_amount: newE.fuelAmount,
+                  price_per_liter: newE.pricePerLiter,
+                  cost: newE.cost,
+                  distancia: newE.distancia
+                }]).select();
+                
+                if (data && data[0]) {
+                  newE.id = String(data[0].id);
+                }
+              } catch (err) { console.error("Cloud Sync Error (New Entry):", err); }
+            }
+
             setEntries([...entries, newE]);
             setShowNewEntry(false);
           }} className="premium-card w-full max-w-lg p-8 sm:p-12 relative shadow-2xl">
