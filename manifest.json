@@ -9,10 +9,11 @@
       "purpose": "any maskable"
     }
   ],
-  "start_url": "./index.html",
-  "background_color": "#020617",
+  "start_url": ".",
   "display": "standalone",
-  "scope": "./",
+  "orientation": "portrait",
+  "background_color": "#020617",
   "theme_color": "#10b981",
+  "scope": "./",
   "description": "Análisis avanzado de combustible para Toyota"
 }
