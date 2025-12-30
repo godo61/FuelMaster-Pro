@@ -108,7 +108,7 @@ const App: React.FC = () => {
   const fetchUserData = async (userId: string) => {
     if (!isSupabaseConfigured) return;
     try {
-      // 1. Fetch Repostajes
+      // 1. Descargar Repostajes
       const { data: entriesData, error: entriesError } = await supabase
         .from('fuel_entries')
         .select('*')
@@ -131,7 +131,7 @@ const App: React.FC = () => {
         setEntries(mapped);
       }
 
-      // 2. Fetch Perfil de Vehículo
+      // 2. Descargar Perfil de Vehículo
       const { data: profileData, error: profileError } = await supabase
         .from('vehicle_profiles')
         .select('*')
@@ -149,7 +149,10 @@ const App: React.FC = () => {
         setVehicleProfile(profile);
         localStorage.setItem(VEHICLE_KEY, JSON.stringify(profile));
       }
-    } catch (e) { loadLocalData(); }
+    } catch (e) { 
+      console.error("Error al sincronizar con la nube:", e);
+      loadLocalData(); 
+    }
   };
 
   useEffect(() => {
@@ -188,7 +191,7 @@ const App: React.FC = () => {
           last_service_km: profile.lastServiceKm,
           last_service_date: profile.lastServiceDate
         });
-      } catch (err) { console.error("Cloud Sync Error (Profile):", err); }
+      } catch (err) { console.error("Error al sincronizar perfil en la nube:", err); }
     }
     
     setShowHelp(false);
@@ -200,7 +203,7 @@ const App: React.FC = () => {
     if (session?.user?.id && isSupabaseConfigured) {
       try {
         await supabase.from('fuel_entries').delete().eq('id', id);
-      } catch (err) { console.error("Cloud Sync Error (Delete):", err); }
+      } catch (err) { console.error("Error al borrar registro en la nube:", err); }
     }
     
     setEntries(entries.filter(e => e.id !== id));
@@ -278,6 +281,7 @@ const App: React.FC = () => {
           }} className="space-y-6">
             <input type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} placeholder="EMAIL" className="w-full bg-slate-900 border border-white/5 rounded-xl py-4 px-6 text-sm font-bold text-white outline-none focus:border-emerald-500" required />
             <input type="password" value={authPassword} onChange={e => setAuthPassword(e.target.value)} placeholder="PASSWORD" className="w-full bg-slate-900 border border-white/5 rounded-xl py-4 px-6 text-sm font-bold text-white outline-none focus:border-emerald-500" required />
+            {authError && <p className="text-red-500 text-[10px] font-bold uppercase text-center">{authError}</p>}
             <button type="submit" disabled={isAuthLoading} className="w-full bg-emerald-500 text-slate-950 py-4 rounded-xl font-black uppercase text-xs tracking-widest">{isAuthLoading ? '...' : String(t.enter)}</button>
           </form>
           <button onClick={() => setIsLocalMode(true)} className="w-full text-center text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-emerald-500">Modo Local (Sin Registro)</button>
@@ -598,7 +602,7 @@ const App: React.FC = () => {
                 if (data && data[0]) {
                   newE.id = String(data[0].id);
                 }
-              } catch (err) { console.error("Cloud Sync Error (New Entry):", err); }
+              } catch (err) { console.error("Error al guardar nuevo reporte en la nube:", err); }
             }
 
             setEntries([...entries, newE]);
