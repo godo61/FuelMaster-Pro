@@ -324,6 +324,17 @@ const App: React.FC = () => {
 
   const carPosition = Math.min(Number(tripKm), 1000) / 1000 * 100;
 
+  // CÁLCULO DE TRENDS PARA SPARKLYNES (Últimos 5 registros)
+  const trends = {
+    consumption: calculatedEntries.map(e => e.consumption).filter(v => v > 0).slice(-5),
+    efficiency: calculatedEntries.map(e => e.kmPerLiter).filter(v => v > 0).slice(-5),
+    pvp: calculatedEntries.map(e => e.pricePerLiter).slice(-5),
+    cost: calculatedEntries.map(e => e.cost).slice(-5),
+    cost100: calculatedEntries.map(e => (e.cost / (e.distancia || 1)) * 100).filter(v => v > 0 && v < 50).slice(-5),
+    liters: calculatedEntries.map(e => e.fuelAmount).slice(-5),
+    odometer: calculatedEntries.map(e => e.kmFinal).slice(-5)
+  };
+
   return (
     <div className={`min-h-screen pb-20 ${theme === 'light' ? 'light' : ''}`}>
       <nav className="h-24 bg-slate-950/40 backdrop-blur-xl border-b border-white/5 flex items-center px-6 sm:px-10 sticky top-0 z-[60]">
@@ -361,13 +372,13 @@ const App: React.FC = () => {
         {stats ? (
           <div className="space-y-10">
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-6">
-              <StatCard label={String(t.consumption)} value={stats.avgConsumption.toFixed(2)} unit="L/100" icon={<Activity size={20}/>} color="bg-blue-500" />
-              <StatCard label={String(t.efficiency)} value={stats.avgKmPerLiter.toFixed(2)} unit="km/L" icon={<Zap size={20}/>} color="bg-emerald-500" />
-              <StatCard label={String(t.avgPvp)} value={stats.avgPricePerLiter.toFixed(3)} unit="€/L" icon={<Euro size={20}/>} color="bg-amber-500" />
-              <StatCard label={String(t.totalCost)} value={stats.totalCost.toLocaleString('es-ES', { maximumFractionDigits: 0 })} unit="€" icon={<Database size={20}/>} color="bg-violet-500" />
-              <StatCard label={String(t.cost100)} value={stats.avgCostPer100Km.toFixed(2)} unit="€" icon={<TrendingUp size={20}/>} color="bg-rose-500" />
-              <StatCard label={String(t.liters)} value={stats.totalFuel.toFixed(0)} unit="L" icon={<Fuel size={20}/>} color="bg-indigo-500" />
-              <StatCard label={String(t.odometer)} value={stats.lastOdometer.toLocaleString()} unit="km" icon={<Navigation size={20}/>} color="bg-slate-500" />
+              <StatCard label={String(t.consumption)} value={stats.avgConsumption.toFixed(2)} unit="L/100" icon={<Activity size={20}/>} color="bg-blue-500" trendData={trends.consumption} />
+              <StatCard label={String(t.efficiency)} value={stats.avgKmPerLiter.toFixed(2)} unit="km/L" icon={<Zap size={20}/>} color="bg-emerald-500" trendData={trends.efficiency} />
+              <StatCard label={String(t.avgPvp)} value={stats.avgPricePerLiter.toFixed(3)} unit="€/L" icon={<Euro size={20}/>} color="bg-amber-500" trendData={trends.pvp} />
+              <StatCard label={String(t.totalCost)} value={stats.totalCost.toLocaleString('es-ES', { maximumFractionDigits: 0 })} unit="€" icon={<Database size={20}/>} color="bg-violet-500" trendData={trends.cost} />
+              <StatCard label={String(t.cost100)} value={stats.avgCostPer100Km.toFixed(2)} unit="€" icon={<TrendingUp size={20}/>} color="bg-rose-500" trendData={trends.cost100} />
+              <StatCard label={String(t.liters)} value={stats.totalFuel.toFixed(0)} unit="L" icon={<Fuel size={20}/>} color="bg-indigo-500" trendData={trends.liters} />
+              <StatCard label={String(t.odometer)} value={stats.lastOdometer.toLocaleString()} unit="km" icon={<Navigation size={20}/>} color="bg-slate-500" trendData={trends.odometer} />
             </div>
 
             {view === 'dashboard' ? (
@@ -428,7 +439,7 @@ const App: React.FC = () => {
 
                           {showComparison && bestTripConsumption > 0 && (
                             <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl animate-fade-in">
-                              <p className="text-[9px] font-bold text-emerald-500/80 mb-2 uppercase">Tu récord: {bestTripConsumption.toFixed(2)} L/100</p>
+                              <p className="text-[9px] font-bold text-emerald-500/80 mb-2 uppercase">Tu récord: {bestTripConsumption.toFixed(2)} L/100km</p>
                               <p className="text-[10px] text-white font-medium leading-relaxed">
                                 Si conduces como en tu mejor viaje, ahorrarías <span className="text-emerald-400 font-black">{potentialSavings.toFixed(2)}€</span> en este trayecto.
                               </p>
