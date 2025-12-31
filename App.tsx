@@ -141,6 +141,7 @@ const App: React.FC = () => {
         .single();
 
       if (!profileError && profileData) {
+        // Correcting property names from snake_case database response to camelCase interface
         const profile: VehicleProfile = {
           registrationDate: profileData.registration_date,
           lastItvDate: profileData.last_itv_date,
@@ -412,7 +413,7 @@ const App: React.FC = () => {
                           placeholder={String(t.tripDistance)}
                           value={tripKm}
                           onChange={(e) => setTripKm(e.target.value)}
-                          className="w-full bg-slate-900 border border-white/5 rounded-xl py-3 px-4 text-xs font-bold text-white outline-none focus:border-blue-500 transition-all"
+                          className="w-full bg-slate-900 border border-white/5 rounded-xl py-3 px-4 text-xs font-bold text-white outline-none focus:border-blue-500 transition-all font-mono-prec"
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-500">KM</span>
                       </div>
@@ -422,11 +423,11 @@ const App: React.FC = () => {
                           <div className="grid grid-cols-2 gap-2 animate-fade-in">
                             <div className="bg-slate-900/50 p-3 rounded-xl border border-white/5">
                               <p className="text-[7px] font-black text-slate-500 uppercase mb-1">{String(t.estFuel)}</p>
-                              <p className="text-sm font-black text-blue-400">{tripFuelEst.toFixed(1)} <span className="text-[8px]">L</span></p>
+                              <p className="text-sm font-black text-blue-400 font-mono-prec">{tripFuelEst.toFixed(1)} <span className="text-[8px] font-sans">L</span></p>
                             </div>
                             <div className="bg-slate-900/50 p-3 rounded-xl border border-white/5">
                               <p className="text-[7px] font-black text-slate-500 uppercase mb-1">{String(t.estCost)}</p>
-                              <p className="text-sm font-black text-emerald-500">{tripCostEst.toFixed(2)} <span className="text-[8px]">€</span></p>
+                              <p className="text-sm font-black text-emerald-500 font-mono-prec">{tripCostEst.toFixed(2)} <span className="text-[8px] font-sans">€</span></p>
                             </div>
                           </div>
 
@@ -439,9 +440,9 @@ const App: React.FC = () => {
 
                           {showComparison && bestTripConsumption > 0 && (
                             <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl animate-fade-in">
-                              <p className="text-[9px] font-bold text-emerald-500/80 mb-2 uppercase">Tu récord: {bestTripConsumption.toFixed(2)} L/100km</p>
+                              <p className="text-[9px] font-bold text-emerald-500/80 mb-2 uppercase">Tu récord: <span className="font-mono-prec">{bestTripConsumption.toFixed(2)}</span> L/100km</p>
                               <p className="text-[10px] text-white font-medium leading-relaxed">
-                                Si conduces como en tu mejor viaje, ahorrarías <span className="text-emerald-400 font-black">{potentialSavings.toFixed(2)}€</span> en este trayecto.
+                                Si conduces como en tu mejor viaje, ahorrarías <span className="text-emerald-400 font-black font-mono-prec">{potentialSavings.toFixed(2)}€</span> en este trayecto.
                               </p>
                             </div>
                           )}
@@ -460,7 +461,7 @@ const App: React.FC = () => {
                         <div className={`p-4 rounded-xl border transition-all ${getItvBgClass(itvDays)}`}>
                            <p className="text-[8px] font-bold text-slate-500 uppercase">{String(t.itvRemaining)}</p>
                            <div className="flex items-center gap-3">
-                              <p className={`text-2xl font-black ${getItvColorClass(itvDays)}`}>{itvDays}</p>
+                              <p className={`text-2xl font-black font-mono-prec ${getItvColorClass(itvDays)}`}>{itvDays}</p>
                               {itvDays <= 30 && <AlertCircle size={16} className={getItvColorClass(itvDays)} />}
                            </div>
                            <p className="text-[8px] font-black uppercase text-slate-500">Vencimiento: {itvDate?.toLocaleDateString()}</p>
@@ -474,7 +475,7 @@ const App: React.FC = () => {
                       {maintenance ? (
                         <div className={`p-4 rounded-xl border ${maintenance.isUrgent ? 'bg-orange-500/10 border-orange-500/20' : 'bg-blue-500/10 border-blue-500/20'}`}>
                           <p className="text-[8px] font-bold text-slate-500 uppercase">Km para revisión</p>
-                          <p className={`text-xl font-black ${maintenance.kmRemaining < 1000 ? 'text-orange-500' : 'text-white'}`}>{maintenance.kmRemaining.toLocaleString()} km</p>
+                          <p className={`text-xl font-black font-mono-prec ${maintenance.kmRemaining < 1000 ? 'text-orange-500' : 'text-white'}`}>{maintenance.kmRemaining.toLocaleString()} <span className="text-[10px] font-sans">km</span></p>
                           <p className="text-[8px] text-slate-500 uppercase font-black">Próxima: {maintenance.nextDate.toLocaleDateString()}</p>
                         </div>
                       ) : (
@@ -515,8 +516,8 @@ const App: React.FC = () => {
                     {calculatedEntries.slice().reverse().map(e => (
                       <tr key={e.id} className="hover:bg-white/[0.02] transition-colors">
                         <td className="px-8 py-6 text-sm font-bold">{e.date}</td>
-                        <td className="px-8 py-6 text-right text-sm font-bold text-slate-400">{e.kmFinal.toLocaleString()}</td>
-                        <td className="px-8 py-6 text-right text-base font-black text-emerald-500">{e.consumption.toFixed(2)}</td>
+                        <td className="px-8 py-6 text-right text-sm font-bold text-slate-400 font-mono-prec">{e.kmFinal.toLocaleString()}</td>
+                        <td className="px-8 py-6 text-right text-base font-black text-emerald-500 font-mono-prec">{e.consumption.toFixed(2)}</td>
                         <td className="px-8 py-6 text-right">
                           <button onClick={() => deleteEntry(e.id)} className="text-red-500 opacity-50 hover:opacity-100 transition-all hover:scale-125"><Trash2 size={16}/></button>
                         </td>
@@ -564,7 +565,7 @@ const App: React.FC = () => {
                 <div className="border-t border-white/5 pt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="space-y-2">
                       <label className="text-[9px] font-black text-blue-500 uppercase">Km de Última Revisión</label>
-                      <input name="lastServiceKm" type="number" defaultValue={vehicleProfile?.lastServiceKm} placeholder="Ej: 112035" className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-blue-500" />
+                      <input name="lastServiceKm" type="number" defaultValue={vehicleProfile?.lastServiceKm} placeholder="Ej: 112035" className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-blue-500 font-mono-prec" />
                    </div>
                    <div className="space-y-2">
                       <label className="text-[9px] font-black text-blue-500 uppercase">Fecha de Última Revisión</label>
@@ -684,7 +685,7 @@ const App: React.FC = () => {
                   km_inicial: newE.kmInicial,
                   km_final: newE.kmFinal,
                   fuel_amount: newE.fuelAmount,
-                  price_per_liter: newE.pricePerLiter,
+                  price_per_liter: newE.price_per_liter,
                   cost: newE.cost,
                   distancia: newE.distancia
                 }]).select();
@@ -702,9 +703,9 @@ const App: React.FC = () => {
             <h3 className="text-xl font-black italic uppercase mb-10 text-white flex items-center gap-3"><Fuel className="text-emerald-500" /> Nuevo Reporte</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2 col-span-2"><label className="text-[9px] font-black text-slate-500 uppercase">Fecha</label><input type="date" value={newEntryForm.date} onChange={e => setNewEntryForm({...newEntryForm, date: e.target.value})} className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500" required /></div>
-              <div className="space-y-2"><label className="text-[9px] font-black text-slate-500 uppercase">Km Actuales</label><input type="number" value={newEntryForm.kmFinal} onChange={e => setNewEntryForm({...newEntryForm, kmFinal: e.target.value})} placeholder="Ej: 125000" className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500" required /></div>
-              <div className="space-y-2"><label className="text-[9px] font-black text-slate-500 uppercase">Litros</label><input type="number" step="0.01" value={newEntryForm.fuelAmount} onChange={e => setNewEntryForm({...newEntryForm, fuelAmount: e.target.value})} placeholder="0.00" className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500" required /></div>
-              <div className="space-y-2"><label className="text-[9px] font-black text-slate-500 uppercase">Precio €/L</label><input type="number" step="0.001" value={newEntryForm.pricePerLiter} onChange={e => setNewEntryForm({...newEntryForm, pricePerLiter: e.target.value})} placeholder="1.549" className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500" required /></div>
+              <div className="space-y-2"><label className="text-[9px] font-black text-slate-500 uppercase">Km Actuales</label><input type="number" value={newEntryForm.kmFinal} onChange={e => setNewEntryForm({...newEntryForm, kmFinal: e.target.value})} placeholder="Ej: 125000" className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500 font-mono-prec" required /></div>
+              <div className="space-y-2"><label className="text-[9px] font-black text-slate-500 uppercase">Litros</label><input type="number" step="0.01" value={newEntryForm.fuelAmount} onChange={e => setNewEntryForm({...newEntryForm, fuelAmount: e.target.value})} placeholder="0.00" className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500 font-mono-prec" required /></div>
+              <div className="space-y-2"><label className="text-[9px] font-black text-slate-500 uppercase">Precio €/L</label><input type="number" step="0.001" value={newEntryForm.pricePerLiter} onChange={e => setNewEntryForm({...newEntryForm, pricePerLiter: e.target.value})} placeholder="1.549" className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500 font-mono-prec" required /></div>
             </div>
             <button type="submit" className="w-full bg-emerald-500 text-slate-950 py-6 rounded-xl font-black uppercase tracking-widest mt-10 hover:scale-[1.02] transition-all">Sincronizar Datos</button>
           </form>
