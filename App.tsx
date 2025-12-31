@@ -3,7 +3,7 @@ import {
   Upload, Zap, Activity, Wrench, X, RefreshCw, Plus, 
   Euro, Navigation, Trash2, Fuel, TrendingUp, 
   Database, Lock, Download, LogOut, Smartphone, ShieldCheck, 
-  AlertCircle, Calendar, Sun, Moon, Mail, FileText, Globe, Settings, AlertTriangle
+  AlertCircle, Calendar, Sun, Moon, Mail, FileText, Globe, Settings, AlertTriangle, MapPin
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { FuelEntry, CalculatedEntry, SummaryStats, VehicleProfile, VehicleCategory } from './types';
@@ -32,6 +32,9 @@ const App: React.FC = () => {
   
   const [theme, setTheme] = useState<'dark' | 'light'>(() => (localStorage.getItem(THEME_KEY) as 'dark' | 'light') || 'dark');
   const [lang, setLang] = useState<'es' | 'en'>(() => (localStorage.getItem(LANG_KEY) as 'es' | 'en') || 'es');
+  
+  // Estado para la calculadora de trayecto
+  const [tripKm, setTripKm] = useState<string>('');
 
   const [vehicleProfile, setVehicleProfile] = useState<VehicleProfile | null>(() => {
     try {
@@ -108,7 +111,6 @@ const App: React.FC = () => {
   const fetchUserData = async (userId: string) => {
     if (!isSupabaseConfigured) return;
     try {
-      // 1. Descargar Repostajes
       const { data: entriesData, error: entriesError } = await supabase
         .from('fuel_entries')
         .select('*')
@@ -131,7 +133,6 @@ const App: React.FC = () => {
         setEntries(mapped);
       }
 
-      // 2. Descargar Perfil de Vehículo
       const { data: profileData, error: profileError } = await supabase
         .from('vehicle_profiles')
         .select('*')
@@ -308,6 +309,10 @@ const App: React.FC = () => {
     return 'bg-emerald-500/10 border-emerald-500/20';
   };
 
+  // Cálculo de la calculadora de trayecto
+  const tripFuelEst = stats ? (Number(tripKm) / 100) * stats.avgConsumption : 0;
+  const tripCostEst = stats ? (Number(tripKm) / 100) * stats.avgCostPer100Km : 0;
+
   return (
     <div className={`min-h-screen pb-20 ${theme === 'light' ? 'light' : ''}`}>
       <nav className="h-24 bg-slate-950/40 backdrop-blur-xl border-b border-white/5 flex items-center px-6 sm:px-10 sticky top-0 z-[60]">
@@ -361,6 +366,38 @@ const App: React.FC = () => {
                   <div className="premium-card p-6 sm:p-10"><FuelChart data={calculatedEntries} type="efficiency" /></div>
                 </div>
                 <div className="space-y-6">
+                  {/* CALCULADORA DE TRAYECTO */}
+                  <div className="premium-card p-6 border-l-4 border-blue-500 flex flex-col gap-4">
+                    <h3 className="text-[10px] font-black uppercase flex items-center gap-2 text-white">
+                      <MapPin size={14} className="text-blue-500" /> {String(t.tripCalculator)}
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <input 
+                          type="number" 
+                          placeholder={String(t.tripDistance)}
+                          value={tripKm}
+                          onChange={(e) => setTripKm(e.target.value)}
+                          className="w-full bg-slate-900 border border-white/5 rounded-xl py-3 px-4 text-xs font-bold text-white outline-none focus:border-blue-500 transition-all"
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-500">KM</span>
+                      </div>
+                      
+                      {tripKm && stats && (
+                        <div className="grid grid-cols-2 gap-2 animate-fade-in">
+                          <div className="bg-slate-900/50 p-3 rounded-xl border border-white/5">
+                            <p className="text-[7px] font-black text-slate-500 uppercase mb-1">{String(t.estFuel)}</p>
+                            <p className="text-sm font-black text-blue-400">{tripFuelEst.toFixed(1)} <span className="text-[8px]">L</span></p>
+                          </div>
+                          <div className="bg-slate-900/50 p-3 rounded-xl border border-white/5">
+                            <p className="text-[7px] font-black text-slate-500 uppercase mb-1">{String(t.estCost)}</p>
+                            <p className="text-sm font-black text-emerald-500">{tripCostEst.toFixed(2)} <span className="text-[8px]">€</span></p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="premium-card p-6 border-l-4 border-emerald-500 flex flex-col gap-6">
                     <h3 className="text-[10px] font-black uppercase flex items-center gap-2 text-white">
                       <Settings size={14} /> {String(t.vehicleProfile)}

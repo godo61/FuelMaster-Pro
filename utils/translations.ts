@@ -54,7 +54,11 @@ export const translations = {
     cat_pesado: "Pesado (>3.5t)",
     cat_autobus: "Autobús",
     cat_caravana: "Caravana (>750kg)",
-    cat_historico: "Vehículo Histórico"
+    cat_historico: "Vehículo Histórico",
+    tripCalculator: "Calculadora de Trayecto",
+    tripDistance: "Distancia del Viaje (km)",
+    estFuel: "Combustible Est.",
+    estCost: "Coste Est."
   },
   en: {
     appTitle: "FuelMaster Pro",
@@ -94,7 +98,7 @@ export const translations = {
     helpTitle: "User Manual",
     helpWelcome: "Welcome to FuelMaster Pro, your fuel analytics hub.",
     helpSection1: "1. Importing: You can upload CSV files exported from Google Sheets. Ensure columns have names like 'Date', 'Initial KM', 'Liters', etc.",
-    helpSection2: "2. Maintenance: The system automatically calculates distance to your next service based on the current odometer.",
+    helpSection2: "2. Mantenimiento: The system automatically calculates distance to your next service based on the current odometer.",
     helpSection3: "3. Backup: We recommend a monthly email backup to secure your data.",
     emailPlaceholder: "your@email.com",
     sendBackup: "Generate Backup & Send",
@@ -111,6 +115,10 @@ export const translations = {
     cat_pesado: "Heavy (>3.5t)",
     cat_autobus: "Bus",
     cat_caravana: "Caravan (>750kg)",
-    cat_historico: "Historic Vehicle"
+    cat_historico: "Historic Vehicle",
+    tripCalculator: "Trip Calculator",
+    tripDistance: "Trip Distance (km)",
+    estFuel: "Est. Fuel",
+    estCost: "Est. Cost"
   }
 };
