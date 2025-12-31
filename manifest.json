@@ -4,7 +4,13 @@
   "description": "Análisis avanzado de combustible para Toyota",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/2933/2933930.png",
+      "src": "./icon-32.png",
+      "type": "image/png",
+      "sizes": "32x32",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any"
