@@ -1,24 +1,32 @@
 {
   "short_name": "FuelMaster",
   "name": "FuelMaster Pro Analytics",
+  "description": "Análisis avanzado de combustible para Toyota",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/2933/2933930.png",
       "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "any maskable"
+      "sizes": "192x192",
+      "purpose": "any"
     },
     {
       "src": "https://cdn-icons-png.flaticon.com/512/2933/2933930.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "512x512",
+      "purpose": "maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2933/2933930.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
     }
   ],
-  "start_url": "./",
+  "start_url": "./index.html",
   "display": "standalone",
+  "display_override": ["window-controls-overlay"],
   "orientation": "portrait",
   "background_color": "#020617",
   "theme_color": "#10b981",
-  "scope": "./",
-  "description": "Análisis avanzado de combustible para Toyota"
+  "scope": "./"
 }
