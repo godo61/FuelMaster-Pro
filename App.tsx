@@ -3,7 +3,7 @@ import {
   Upload, Zap, Activity, Wrench, X, RefreshCw, Plus, 
   Euro, Navigation, Trash2, Fuel, TrendingUp, 
   Database, Lock, Download, LogOut, Smartphone, ShieldCheck, 
-  AlertCircle, Calendar, Sun, Moon, Mail, FileText, Globe, Settings, AlertTriangle, MapPin
+  AlertCircle, Calendar, Sun, Moon, Mail, FileText, Globe, Settings, AlertTriangle, MapPin, Car
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { FuelEntry, CalculatedEntry, SummaryStats, VehicleProfile, VehicleCategory } from './types';
@@ -35,6 +35,7 @@ const App: React.FC = () => {
   
   // Estado para la calculadora de trayecto
   const [tripKm, setTripKm] = useState<string>('');
+  const [showComparison, setShowComparison] = useState(false);
 
   const [vehicleProfile, setVehicleProfile] = useState<VehicleProfile | null>(() => {
     try {
@@ -309,9 +310,19 @@ const App: React.FC = () => {
     return 'bg-emerald-500/10 border-emerald-500/20';
   };
 
-  // Cálculo de la calculadora de trayecto
+  // LÓGICA CALCULADORA REFINADA
   const tripFuelEst = stats ? (Number(tripKm) / 100) * stats.avgConsumption : 0;
   const tripCostEst = stats ? (Number(tripKm) / 100) * stats.avgCostPer100Km : 0;
+  
+  const bestTripConsumption = calculatedEntries.length > 0 
+    ? Math.min(...calculatedEntries.filter(e => e.consumption > 0).map(e => e.consumption)) 
+    : 0;
+  
+  const potentialSavings = stats && bestTripConsumption > 0 
+    ? ((stats.avgConsumption - bestTripConsumption) * (Number(tripKm) / 100)) * stats.avgPricePerLiter
+    : 0;
+
+  const carPosition = Math.min(Number(tripKm), 1000) / 1000 * 100;
 
   return (
     <div className={`min-h-screen pb-20 ${theme === 'light' ? 'light' : ''}`}>
@@ -366,11 +377,23 @@ const App: React.FC = () => {
                   <div className="premium-card p-6 sm:p-10"><FuelChart data={calculatedEntries} type="efficiency" /></div>
                 </div>
                 <div className="space-y-6">
-                  {/* CALCULADORA DE TRAYECTO */}
+                  {/* CALCULADORA DE TRAYECTO REFINADA */}
                   <div className="premium-card p-6 border-l-4 border-blue-500 flex flex-col gap-4">
                     <h3 className="text-[10px] font-black uppercase flex items-center gap-2 text-white">
                       <MapPin size={14} className="text-blue-500" /> {String(t.tripCalculator)}
                     </h3>
+                    
+                    {/* Visualización del coche */}
+                    <div className="relative h-8 w-full bg-slate-900/50 rounded-lg border border-white/5 overflow-hidden flex items-center px-4">
+                      <div className="absolute left-0 h-[1px] w-full border-t border-dashed border-slate-700/50"></div>
+                      <div 
+                        className="relative z-10 transition-all duration-500 ease-out"
+                        style={{ transform: `translateX(calc(${carPosition}% - 24px))` }}
+                      >
+                        <Car size={18} className="text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                      </div>
+                    </div>
+
                     <div className="space-y-3">
                       <div className="relative">
                         <input 
@@ -384,16 +407,34 @@ const App: React.FC = () => {
                       </div>
                       
                       {tripKm && stats && (
-                        <div className="grid grid-cols-2 gap-2 animate-fade-in">
-                          <div className="bg-slate-900/50 p-3 rounded-xl border border-white/5">
-                            <p className="text-[7px] font-black text-slate-500 uppercase mb-1">{String(t.estFuel)}</p>
-                            <p className="text-sm font-black text-blue-400">{tripFuelEst.toFixed(1)} <span className="text-[8px]">L</span></p>
+                        <>
+                          <div className="grid grid-cols-2 gap-2 animate-fade-in">
+                            <div className="bg-slate-900/50 p-3 rounded-xl border border-white/5">
+                              <p className="text-[7px] font-black text-slate-500 uppercase mb-1">{String(t.estFuel)}</p>
+                              <p className="text-sm font-black text-blue-400">{tripFuelEst.toFixed(1)} <span className="text-[8px]">L</span></p>
+                            </div>
+                            <div className="bg-slate-900/50 p-3 rounded-xl border border-white/5">
+                              <p className="text-[7px] font-black text-slate-500 uppercase mb-1">{String(t.estCost)}</p>
+                              <p className="text-sm font-black text-emerald-500">{tripCostEst.toFixed(2)} <span className="text-[8px]">€</span></p>
+                            </div>
                           </div>
-                          <div className="bg-slate-900/50 p-3 rounded-xl border border-white/5">
-                            <p className="text-[7px] font-black text-slate-500 uppercase mb-1">{String(t.estCost)}</p>
-                            <p className="text-sm font-black text-emerald-500">{tripCostEst.toFixed(2)} <span className="text-[8px]">€</span></p>
-                          </div>
-                        </div>
+
+                          <button 
+                            onClick={() => setShowComparison(!showComparison)}
+                            className="w-full py-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 text-[8px] font-black uppercase rounded-lg border border-emerald-500/20 transition-all flex items-center justify-center gap-2"
+                          >
+                            <TrendingUp size={12} /> {showComparison ? "Ocultar comparativa" : "Comparar con mi mejor viaje"}
+                          </button>
+
+                          {showComparison && bestTripConsumption > 0 && (
+                            <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl animate-fade-in">
+                              <p className="text-[9px] font-bold text-emerald-500/80 mb-2 uppercase">Tu récord: {bestTripConsumption.toFixed(2)} L/100</p>
+                              <p className="text-[10px] text-white font-medium leading-relaxed">
+                                Si conduces como en tu mejor viaje, ahorrarías <span className="text-emerald-400 font-black">{potentialSavings.toFixed(2)}€</span> en este trayecto.
+                              </p>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
