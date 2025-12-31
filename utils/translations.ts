@@ -1,4 +1,3 @@
-
 export const translations = {
   es: {
     appTitle: "FuelMaster Pro",
@@ -12,6 +11,7 @@ export const translations = {
     consumption: "Consumo",
     efficiency: "Eficiencia",
     avgPvp: "Media PVP",
+    totalCost: "Gasto Total",
     cost100: "Gasto/100",
     liters: "Litros",
     odometer: "Odómetro",
@@ -68,6 +68,7 @@ export const translations = {
     consumption: "Consumption",
     efficiency: "Efficiency",
     avgPvp: "Avg Price",
+    totalCost: "Total Cost",
     cost100: "Cost/100",
     liters: "Liters",
     odometer: "Odometer",
