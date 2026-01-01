@@ -64,6 +64,21 @@ const App: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Lógica de Eco-Dashboard Dinámico
+  const getEcoColor = () => {
+    if (!stats) return 'emerald';
+    const cons = stats.avgConsumption;
+    if (cons < 4.8) return 'emerald'; // Excelente
+    if (cons <= 5.5) return 'amber';   // Medio
+    return 'orange';                  // Alto
+  };
+
+  const ecoColor = getEcoColor();
+  const ecoBg = `bg-${ecoColor}-500`;
+  const ecoText = `text-${ecoColor}-500`;
+  const ecoBorder = `border-${ecoColor}-500`;
+  const ecoShadow = `shadow-${ecoColor}-500/20`;
+
   useEffect(() => {
     document.body.className = theme;
     localStorage.setItem(THEME_KEY, theme);
@@ -239,12 +254,15 @@ const App: React.FC = () => {
     
     const kmRemaining = nextKm - stats.lastOdometer;
     const daysRemaining = getDaysRemaining(nextDate.toISOString());
+    const kmUsed = 15000 - kmRemaining;
+    const servicePercent = Math.min((kmUsed / 15000) * 100, 100);
     
     return {
       nextKm,
       nextDate,
       kmRemaining,
       daysRemaining,
+      servicePercent,
       isUrgent: kmRemaining < 1000 || daysRemaining < 30
     };
   };
@@ -265,7 +283,7 @@ const App: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center p-6 bg-slate-950">
         <div className="premium-card w-full max-w-md p-10 space-y-8 animate-fade-in shadow-2xl">
           <div className="text-center">
-            <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center text-slate-950 mx-auto mb-6">
+            <div className={`w-16 h-16 ${ecoBg} rounded-2xl flex items-center justify-center text-slate-950 mx-auto mb-6 transition-colors duration-1000`}>
               <Lock size={32} />
             </div>
             <h1 className="text-3xl font-black italic tracking-tighter uppercase text-white">{String(t.appTitle)}</h1>
@@ -282,7 +300,7 @@ const App: React.FC = () => {
             <input type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} placeholder="EMAIL" className="w-full bg-slate-900 border border-white/5 rounded-xl py-4 px-6 text-sm font-bold text-white outline-none focus:border-emerald-500" required />
             <input type="password" value={authPassword} onChange={e => setAuthPassword(e.target.value)} placeholder="PASSWORD" className="w-full bg-slate-900 border border-white/5 rounded-xl py-4 px-6 text-sm font-bold text-white outline-none focus:border-emerald-500" required />
             {authError && <p className="text-red-500 text-[10px] font-bold uppercase text-center">{authError}</p>}
-            <button type="submit" disabled={isAuthLoading} className="w-full bg-emerald-500 text-slate-950 py-4 rounded-xl font-black uppercase text-xs tracking-widest">{isAuthLoading ? '...' : String(t.enter)}</button>
+            <button type="submit" disabled={isAuthLoading} className={`w-full ${ecoBg} text-slate-950 py-4 rounded-xl font-black uppercase text-xs tracking-widest transition-colors duration-1000`}>{isAuthLoading ? '...' : String(t.enter)}</button>
           </form>
           <button onClick={() => setIsLocalMode(true)} className="w-full text-center text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-emerald-500">Modo Local (Sin Registro)</button>
         </div>
@@ -319,7 +337,6 @@ const App: React.FC = () => {
     ? ((stats.avgConsumption - bestTripConsumption) * (Number(tripKm) / 100)) * stats.avgPricePerLiter
     : 0;
 
-  // LÓGICA DE AUTONOMÍA INTELIGENTE BASADA EN HÁBITOS REALES
   const avgRefillLiters = stats && calculatedEntries.length > 0 ? stats.totalFuel / calculatedEntries.length : 0;
   const estimatedTypicalRange = stats && stats.avgConsumption > 0 ? (avgRefillLiters / stats.avgConsumption) * 100 : 0;
   const estimatedMaxPotentialRange = stats && stats.avgConsumption > 0 ? (43 / stats.avgConsumption) * 100 : 0;
@@ -341,7 +358,7 @@ const App: React.FC = () => {
       <nav className="h-24 bg-slate-950/40 backdrop-blur-xl border-b border-white/5 flex items-center px-6 sm:px-10 sticky top-0 z-[60]">
         <div className="max-w-7xl mx-auto w-full flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-500 rounded-xl flex items-center justify-center text-slate-900 rotate-2">
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 ${ecoBg} rounded-xl flex items-center justify-center text-slate-900 rotate-2 transition-colors duration-1000`}>
               <Zap size={20} fill="currentColor" />
             </div>
             <h1 className="text-lg sm:text-xl font-black italic tracking-tighter uppercase leading-none text-white hidden xs:block">{String(t.appTitle)}</h1>
@@ -359,8 +376,8 @@ const App: React.FC = () => {
             </div>
 
             <div className="bg-slate-800/20 p-1 rounded-xl flex">
-              <button onClick={() => setView('dashboard')} className={`px-3 sm:px-4 py-2 rounded-lg text-[9px] font-black uppercase ${view === 'dashboard' ? 'bg-emerald-500 text-slate-950' : 'text-slate-500'}`}>{String(t.monitor)}</button>
-              <button onClick={() => setView('history')} className={`px-3 sm:px-4 py-2 rounded-lg text-[9px] font-black uppercase ${view === 'history' ? 'bg-emerald-500 text-slate-950' : 'text-slate-500'}`}>{String(t.history)}</button>
+              <button onClick={() => setView('dashboard')} className={`px-3 sm:px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all duration-500 ${view === 'dashboard' ? `${ecoBg} text-slate-950` : 'text-slate-500'}`}>{String(t.monitor)}</button>
+              <button onClick={() => setView('history')} className={`px-3 sm:px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all duration-500 ${view === 'history' ? `${ecoBg} text-slate-950` : 'text-slate-500'}`}>{String(t.history)}</button>
             </div>
             
             <button onClick={() => setShowHelp(true)} className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-slate-400 hover:text-white transition-all hover:bg-white/5 rounded-xl"><Settings size={18}/></button>
@@ -389,7 +406,7 @@ const App: React.FC = () => {
                   <div className="premium-card p-6 sm:p-10"><FuelChart data={calculatedEntries} type="efficiency" /></div>
                 </div>
                 <div className="space-y-6">
-                  {/* WIDGET AUTONOMÍA INTELIGENTE REFINADO */}
+                  {/* WIDGET AUTONOMÍA INTELIGENTE */}
                   <div className="premium-card p-6 border-l-4 border-indigo-500 flex flex-col gap-4">
                     <h3 className="text-[10px] font-black uppercase flex items-center gap-2 text-white">
                       <Fuel size={14} className="text-indigo-500" /> {String(t.theoreticalRange)}
@@ -401,7 +418,6 @@ const App: React.FC = () => {
                         <span className="text-[10px] font-bold text-indigo-400">KM</span>
                       </div>
                       
-                      {/* Barra de Aprovechamiento del Depósito */}
                       <div className="w-full h-2 bg-slate-900/50 rounded-full mt-5 overflow-hidden border border-white/5 relative">
                         <div 
                           className="h-full bg-gradient-to-r from-indigo-600 to-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.4)] transition-all duration-1000 ease-out" 
@@ -422,10 +438,10 @@ const App: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* CALCULADORA DE TRAYECTO (MANTENIDA INTACTA) */}
-                  <div className="premium-card p-6 border-l-4 border-blue-500 flex flex-col gap-4">
+                  {/* CALCULADORA DE TRAYECTO - CORREGIDA */}
+                  <div className={`premium-card p-6 border-l-4 ${ecoBorder} flex flex-col gap-4 transition-colors duration-1000`}>
                     <h3 className="text-[10px] font-black uppercase flex items-center gap-2 text-white">
-                      <MapPin size={14} className="text-blue-500" /> {String(t.tripCalculator)}
+                      <MapPin size={14} className={ecoText} /> {String(t.tripCalculator)}
                     </h3>
                     
                     <div className="relative h-8 w-full bg-slate-900/50 rounded-lg border border-white/5 overflow-hidden flex items-center px-4">
@@ -434,7 +450,7 @@ const App: React.FC = () => {
                         className="relative z-10 transition-all duration-500 ease-out"
                         style={{ transform: `translateX(calc(${carPosition}% - 24px))` }}
                       >
-                        <Car size={18} className="text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                        <Car size={18} className={`${ecoText} drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]`} />
                       </div>
                     </div>
 
@@ -445,7 +461,7 @@ const App: React.FC = () => {
                           placeholder={String(t.tripDistance)}
                           value={tripKm}
                           onChange={(e) => setTripKm(e.target.value)}
-                          className="w-full bg-slate-900 border border-white/5 rounded-xl py-3 px-4 text-xs font-bold text-white outline-none focus:border-blue-500 transition-all font-mono-prec"
+                          className={`w-full bg-slate-900 border border-white/5 rounded-xl py-3 px-4 text-xs font-bold text-white outline-none focus:border-${ecoColor}-500 transition-all font-mono-prec`}
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-500">KM</span>
                       </div>
@@ -455,42 +471,51 @@ const App: React.FC = () => {
                           <div className="grid grid-cols-2 gap-2 animate-fade-in">
                             <div className="bg-slate-900/50 p-3 rounded-xl border border-white/5">
                               <p className="text-[7px] font-black text-slate-500 uppercase mb-1">{String(t.estFuel)}</p>
-                              <p className="text-sm font-black text-blue-400 font-mono-prec">{tripFuelEst.toFixed(1)} <span className="text-[8px] font-sans">L</span></p>
+                              <p className={`text-sm font-black ${ecoText} font-mono-prec`}>{tripFuelEst.toFixed(1)} <span className="text-[8px] font-sans">L</span></p>
                             </div>
                             <div className="bg-slate-900/50 p-3 rounded-xl border border-white/5">
                               <p className="text-[7px] font-black text-slate-500 uppercase mb-1">{String(t.estCost)}</p>
-                              <p className="text-sm font-black text-emerald-500 font-mono-prec">{tripCostEst.toFixed(2)} <span className="text-[8px] font-sans">€</span></p>
+                              <p className="text-sm font-black text-white font-mono-prec">{tripCostEst.toFixed(2)} <span className="text-[8px] font-sans">€</span></p>
                             </div>
                           </div>
 
+                          {/* PANEL DE COMPARATIVA - BLOQUE CORREGIDO */}
+                          {showComparison && (
+                            <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3 animate-fade-in overflow-hidden relative group">
+                                <div className={`absolute top-0 left-0 w-1 h-full ${ecoBg}`}></div>
+                                <div className="flex justify-between items-start">
+                                   <div>
+                                      <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest">Récord Histórico</p>
+                                      <p className={`text-sm font-black ${ecoText} font-mono-prec`}>{bestTripConsumption.toFixed(2)} <span className="text-[8px] font-sans">L/100</span></p>
+                                   </div>
+                                   <div className="text-right">
+                                      <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest">Ahorro Potencial</p>
+                                      <p className="text-sm font-black text-emerald-500 font-mono-prec">{potentialSavings.toFixed(2)} <span className="text-[8px] font-sans">€</span></p>
+                                   </div>
+                                </div>
+                                <p className="text-[7px] text-slate-500 font-bold uppercase italic leading-tight">Si conduces hoy como en tu mejor viaje, ahorrarás el equivalente a {(potentialSavings / stats.avgPricePerLiter).toFixed(1)} litros.</p>
+                            </div>
+                          )}
+
                           <button 
                             onClick={() => setShowComparison(!showComparison)}
-                            className="w-full py-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 text-[8px] font-black uppercase rounded-lg border border-emerald-500/20 transition-all flex items-center justify-center gap-2"
+                            className={`w-full py-3 bg-${ecoColor}-500/10 hover:bg-${ecoColor}-500/20 ${ecoText} text-[8px] font-black uppercase rounded-lg border ${ecoBorder}/20 transition-all flex items-center justify-center gap-2`}
                           >
                             <TrendingUp size={12} /> {showComparison ? "Ocultar comparativa" : "Comparar con mi mejor viaje"}
                           </button>
-
-                          {showComparison && bestTripConsumption > 0 && (
-                            <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl animate-fade-in">
-                              <p className="text-[9px] font-bold text-emerald-500/80 mb-2 uppercase">Tu récord: <span className="font-mono-prec">{bestTripConsumption.toFixed(2)}</span> L/100km</p>
-                              <p className="text-[10px] text-white font-medium leading-relaxed">
-                                Si conduces como en tu mejor viaje, ahorrarías <span className="text-emerald-400 font-black font-mono-prec">{potentialSavings.toFixed(2)}€</span> en este trayecto.
-                              </p>
-                            </div>
-                          )}
                         </>
                       )}
                     </div>
                   </div>
 
-                  {/* PERFIL DEL VEHÍCULO (MANTENIDO INTACTO) */}
-                  <div className="premium-card p-6 border-l-4 border-emerald-500 flex flex-col gap-6">
+                  {/* PERFIL Y MANTENIMIENTO */}
+                  <div className="premium-card p-6 border-l-4 border-blue-500 flex flex-col gap-6">
                     <h3 className="text-[10px] font-black uppercase flex items-center gap-2 text-white">
-                      <Settings size={14} /> {String(t.vehicleProfile)}
+                      <Settings size={14} className="text-blue-500" /> {String(t.vehicleProfile)}
                     </h3>
                     
                     <div className="space-y-4">
-                      {isItvValid ? (
+                      {isItvValid && (
                         <div className={`p-4 rounded-xl border transition-all ${getItvBgClass(itvDays)}`}>
                            <p className="text-[8px] font-bold text-slate-500 uppercase">{String(t.itvRemaining)}</p>
                            <div className="flex items-center gap-3">
@@ -499,33 +524,43 @@ const App: React.FC = () => {
                            </div>
                            <p className="text-[8px] font-black uppercase text-slate-500">Vencimiento: {itvDate?.toLocaleDateString()}</p>
                         </div>
-                      ) : (
-                        <div className="p-4 rounded-xl bg-slate-900 border border-white/5">
-                           <p className="text-[8px] font-black text-slate-500 uppercase">Configuración de ITV pendiente</p>
-                        </div>
                       )}
 
                       {maintenance ? (
-                        <div className={`p-4 rounded-xl border ${maintenance.isUrgent ? 'bg-orange-500/10 border-orange-500/20' : 'bg-blue-500/10 border-blue-500/20'}`}>
-                          <p className="text-[8px] font-bold text-slate-500 uppercase">Km para revisión</p>
-                          <p className={`text-xl font-black font-mono-prec ${maintenance.kmRemaining < 1000 ? 'text-orange-500' : 'text-white'}`}>{maintenance.kmRemaining.toLocaleString()} <span className="text-[10px] font-sans">km</span></p>
-                          <p className="text-[8px] text-slate-500 uppercase font-black">Próxima: {maintenance.nextDate.toLocaleDateString()}</p>
+                        <div className={`p-4 rounded-xl border transition-all ${maintenance.isUrgent ? 'bg-orange-500/10 border-orange-500/20' : 'bg-blue-500/10 border-blue-500/20'}`}>
+                          <p className="text-[8px] font-bold text-slate-500 uppercase mb-3">Revisión (15.000 KM)</p>
+                          
+                          <div className="w-full h-3 bg-slate-900/50 rounded-full mb-3 overflow-hidden border border-white/5 relative">
+                             <div 
+                                className={`h-full transition-all duration-1000 ease-out ${maintenance.isUrgent ? 'bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.4)]' : 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.4)]'}`}
+                                style={{ width: `${maintenance.servicePercent}%` }}
+                             ></div>
+                          </div>
+
+                          <div className="flex justify-between items-baseline">
+                             <p className={`text-xl font-black font-mono-prec ${maintenance.kmRemaining < 1000 ? 'text-orange-500' : 'text-white'}`}>{maintenance.kmRemaining.toLocaleString()} <span className="text-[10px] font-sans">km</span></p>
+                             <p className="text-[8px] text-slate-500 uppercase font-black">{maintenance.servicePercent.toFixed(0)}% Utilizado</p>
+                          </div>
                         </div>
                       ) : (
                         <div className="p-4 rounded-xl bg-slate-900 border border-white/5">
-                           <p className="text-[8px] font-black text-slate-500 uppercase">Mantenimiento no configurado</p>
+                           <p className="text-[8px] font-black text-slate-500 uppercase text-center">Configura tu mantenimiento en ajustes</p>
                         </div>
                       )}
 
-                      <button onClick={() => setShowHelp(true)} className="w-full py-4 bg-slate-900 hover:bg-slate-800 rounded-xl text-[8px] font-black uppercase text-slate-400 transition-all flex items-center justify-center gap-2 border border-white/5">
-                        <Wrench size={12} /> Gestionar Perfil
+                      {/* BOTÓN GESTIONAR PERFIL RESTAURADO */}
+                      <button 
+                        onClick={() => setShowHelp(true)}
+                        className="w-full mt-2 py-3 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-[8px] font-black uppercase rounded-lg border border-blue-500/20 transition-all flex items-center justify-center gap-2"
+                      >
+                        <Settings size={12} /> Gestionar Perfil
                       </button>
                     </div>
                   </div>
 
-                  {/* BOTONERA DE ACCIÓN (LOS 4 BOTONES MANTENIDOS INTACTOS) */}
+                  {/* BOTONERA DE ACCIÓN */}
                   <div className="grid grid-cols-1 gap-3">
-                    <button onClick={() => setShowImport(true)} className="w-full py-4 premium-card flex items-center justify-center gap-3 text-[10px] font-black uppercase hover:border-emerald-500 transition-all text-emerald-500 group">
+                    <button onClick={() => setShowImport(true)} className={`w-full py-4 premium-card flex items-center justify-center gap-3 text-[10px] font-black uppercase hover:${ecoBorder} transition-all ${ecoText} group`}>
                       <Upload size={14} className="group-hover:animate-bounce"/> ACTUALIZAR CSV
                     </button>
                     <button onClick={() => downloadCSV(calculatedEntries, 'FuelMaster_Backup.csv')} className="w-full py-4 premium-card flex items-center justify-center gap-3 text-[10px] font-black uppercase hover:border-blue-500 transition-all text-blue-400">
@@ -567,7 +602,7 @@ const App: React.FC = () => {
             <Database className="mb-8 text-slate-800 animate-pulse" size={64} />
             <p className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.3em] mb-10">No hay registros disponibles</p>
             <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
-              <button onClick={() => setShowImport(true)} className="bg-emerald-500 text-slate-950 px-8 py-4 rounded-xl font-black uppercase text-[10px] w-full flex items-center justify-center gap-2 hover:scale-[1.05] transition-all">
+              <button onClick={() => setShowImport(true)} className={`${ecoBg} text-slate-950 px-8 py-4 rounded-xl font-black uppercase text-[10px] w-full flex items-center justify-center gap-2 hover:scale-[1.05] transition-all duration-1000`}>
                 <Upload size={14}/> {String(t.import)}
               </button>
               <button onClick={() => setShowNewEntry(true)} className="bg-slate-800 text-white px-8 py-4 rounded-xl font-black uppercase text-[10px] w-full flex items-center justify-center gap-2 hover:scale-[1.05] transition-all">
@@ -578,11 +613,15 @@ const App: React.FC = () => {
         )}
       </main>
 
+      <button onClick={() => setShowNewEntry(true)} className={`fixed bottom-6 right-6 sm:bottom-10 sm:right-10 w-14 h-14 sm:w-16 sm:h-16 ${ecoBg} text-slate-950 rounded-2xl shadow-2xl flex items-center justify-center z-[70] hover:scale-110 active:scale-95 transition-all duration-1000 ${ecoShadow}`}>
+        <Plus size={28} />
+      </button>
+
       {showHelp && (
         <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6 sm:p-8 animate-fade-in">
           <div className="premium-card w-full max-w-2xl p-8 relative overflow-y-auto max-h-[90vh] shadow-2xl">
             <button onClick={() => setShowHelp(false)} className="absolute top-6 right-6 text-slate-500 hover:text-white transition-all"><X size={32}/></button>
-            <div className="p-6 bg-emerald-500/5 rounded-3xl border border-emerald-500/10">
+            <div className={`p-6 bg-${ecoColor}-500/5 rounded-3xl border ${ecoBorder}/10`}>
               <h3 className="text-2xl font-black italic uppercase text-white mb-8">Gestión de Perfil</h3>
               <form onSubmit={handleSaveVehicle} className="space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -616,13 +655,12 @@ const App: React.FC = () => {
                     </select>
                 </div>
                 
-                <button type="submit" className="w-full py-5 bg-emerald-500 text-slate-950 rounded-xl font-black uppercase text-xs tracking-[0.2em] shadow-lg shadow-emerald-500/20 hover:scale-[1.02] transition-all">Sincronizar Perfil</button>
+                <button type="submit" className={`w-full py-5 ${ecoBg} text-slate-950 rounded-xl font-black uppercase text-xs tracking-[0.2em] shadow-lg ${ecoShadow} hover:scale-[1.02] transition-all duration-1000`}>Sincronizar Perfil</button>
               </form>
 
-              <div className="mt-12 pt-8 border-t border-red-500/20">
-                 <h4 className="text-[10px] font-black text-red-500 uppercase mb-4 flex items-center gap-2"><AlertTriangle size={14}/> Danger Zone</h4>
-                 <button onClick={handleClearAllData} className="w-full py-4 bg-red-600/10 text-red-500 border border-red-600/20 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-red-600 hover:text-white transition-all">
-                    Borrar todos los datos locales
+              <div className="mt-12 pt-8 border-t border-red-500/20 text-center">
+                 <button onClick={handleClearAllData} className="text-red-500 font-black uppercase text-[10px] tracking-widest hover:text-red-400 transition-all">
+                    Borrar base de datos local
                  </button>
               </div>
             </div>
@@ -634,10 +672,9 @@ const App: React.FC = () => {
         <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6 sm:p-8">
           <div className="premium-card w-full max-w-xl p-8 sm:p-12 relative shadow-2xl text-center">
             <button onClick={() => setShowImport(false)} className="absolute top-6 right-6 text-slate-500 hover:text-white transition-all"><X size={32}/></button>
-            <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-slate-800 rounded-3xl p-10 sm:p-16 cursor-pointer hover:border-emerald-500/50 transition-all group">
-              <Upload className="mx-auto mb-6 text-slate-500 group-hover:text-emerald-500 transition-colors" size={56} />
+            <div onClick={() => fileInputRef.current?.click()} className={`border-2 border-dashed border-slate-800 rounded-3xl p-10 sm:p-16 cursor-pointer hover:${ecoBorder}/50 transition-all group`}>
+              <Upload className={`mx-auto mb-6 text-slate-500 group-hover:${ecoText} transition-colors`} size={56} />
               <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Sincronizar CSV</p>
-              <p className="text-[8px] text-slate-600 mt-2 italic">Formatos: Toyota Fuel Log / Google Sheets</p>
             </div>
             <input type="file" ref={fileInputRef} onChange={(e) => {
                const file = e.target.files?.[0];
@@ -648,7 +685,7 @@ const App: React.FC = () => {
                    const parsed = parseFuelCSV(evt.target?.result as string);
                    setEntries(parsed);
                    setShowImport(false);
-                 } catch(err) { alert("Error al procesar CSV. Revisa el formato."); }
+                 } catch(err) { alert("Error al procesar CSV."); }
                };
                reader.readAsText(file);
             }} accept=".csv" className="hidden" />
@@ -662,16 +699,11 @@ const App: React.FC = () => {
             <button onClick={() => setShowBackup(false)} className="absolute top-6 right-6 text-slate-500 hover:text-white transition-all"><X size={28}/></button>
             <Mail className="mx-auto mb-6 text-amber-500" size={48} />
             <h3 className="text-xl font-black uppercase tracking-tighter text-white mb-2">Email Backup</h3>
-            <p className="text-[10px] text-slate-500 font-bold uppercase mb-8">Se generará un archivo CSV y se abrirá tu cliente de correo.</p>
             <input id="backup-email-input" type="email" placeholder="tu@email.com" className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-amber-500 text-sm font-bold mb-4" />
-            <button onClick={() => handleBackupEmail((document.getElementById('backup-email-input') as HTMLInputElement).value)} className="w-full py-5 bg-amber-500 text-slate-950 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-amber-500/20">Enviar Backup Ahora</button>
+            <button onClick={() => handleBackupEmail((document.getElementById('backup-email-input') as HTMLInputElement).value)} className="w-full py-5 bg-amber-500 text-slate-950 rounded-xl font-black uppercase text-[10px] tracking-widest">Enviar Backup Ahora</button>
           </div>
         </div>
       )}
-
-      <button onClick={() => setShowNewEntry(true)} className="fixed bottom-6 right-6 sm:bottom-10 sm:right-10 w-14 h-14 sm:w-16 sm:h-16 bg-emerald-500 text-slate-950 rounded-2xl shadow-2xl flex items-center justify-center z-[70] hover:scale-110 active:scale-95 transition-all">
-        <Plus size={28} />
-      </button>
 
       {showNewEntry && (
         <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6 sm:p-8">
@@ -698,14 +730,14 @@ const App: React.FC = () => {
             setShowNewEntry(false);
           }} className="premium-card w-full max-w-lg p-8 sm:p-12 relative shadow-2xl">
             <button type="button" onClick={() => setShowNewEntry(false)} className="absolute top-6 right-6 text-slate-500 hover:text-white transition-all"><X size={32}/></button>
-            <h3 className="text-xl font-black italic uppercase mb-10 text-white flex items-center gap-3"><Fuel className="text-emerald-500" /> Nuevo Reporte</h3>
+            <h3 className="text-xl font-black italic uppercase mb-10 text-white flex items-center gap-3"><Fuel className={ecoText} /> Nuevo Reporte</h3>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2 col-span-2"><label className="text-[9px] font-black text-slate-500 uppercase">Fecha</label><input type="date" value={newEntryForm.date} onChange={e => setNewEntryForm({...newEntryForm, date: e.target.value})} className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500" required /></div>
-              <div className="space-y-2"><label className="text-[9px] font-black text-slate-500 uppercase">Km Actuales</label><input type="number" value={newEntryForm.kmFinal} onChange={e => setNewEntryForm({...newEntryForm, kmFinal: e.target.value})} placeholder="Ej: 125000" className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500" required /></div>
-              <div className="space-y-2"><label className="text-[9px] font-black text-slate-500 uppercase">Litros</label><input type="number" step="0.01" value={newEntryForm.fuelAmount} onChange={e => setNewEntryForm({...newEntryForm, fuelAmount: e.target.value})} placeholder="0.00" className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500" required /></div>
-              <div className="space-y-2"><label className="text-[9px] font-black text-slate-500 uppercase">Precio €/L</label><input type="number" step="0.001" value={newEntryForm.pricePerLiter} onChange={e => setNewEntryForm({...newEntryForm, pricePerLiter: e.target.value})} placeholder="1.549" className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500" required /></div>
+              <div className="space-y-2 col-span-2"><label className="text-[9px] font-black text-slate-500 uppercase">Fecha</label><input type="date" value={newEntryForm.date} onChange={e => setNewEntryForm({...newEntryForm, date: e.target.value})} className={`w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-${ecoColor}-500`} required /></div>
+              <div className="space-y-2"><label className="text-[9px] font-black text-slate-500 uppercase">Km Actuales</label><input type="number" value={newEntryForm.kmFinal} onChange={e => setNewEntryForm({...newEntryForm, kmFinal: e.target.value})} className={`w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-${ecoColor}-500`} required /></div>
+              <div className="space-y-2"><label className="text-[9px] font-black text-slate-500 uppercase">Litros</label><input type="number" step="0.01" value={newEntryForm.fuelAmount} onChange={e => setNewEntryForm({...newEntryForm, fuelAmount: e.target.value})} className={`w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-${ecoColor}-500`} required /></div>
+              <div className="space-y-2"><label className="text-[9px] font-black text-slate-500 uppercase">Precio €/L</label><input type="number" step="0.001" value={newEntryForm.pricePerLiter} onChange={e => setNewEntryForm({...newEntryForm, pricePerLiter: e.target.value})} className={`w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-${ecoColor}-500`} required /></div>
             </div>
-            <button type="submit" className="w-full bg-emerald-500 text-slate-950 py-6 rounded-xl font-black uppercase tracking-widest mt-10 hover:scale-[1.02] transition-all">Sincronizar Datos</button>
+            <button type="submit" className={`w-full ${ecoBg} text-slate-950 py-6 rounded-xl font-black uppercase tracking-widest mt-10 hover:scale-[1.02] transition-all duration-1000 shadow-lg ${ecoShadow}`}>Sincronizar Datos</button>
           </form>
         </div>
       )}
