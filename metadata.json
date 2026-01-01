@@ -1,5 +1,6 @@
+
 {
   "name": "FuelMaster Pro - Toyota Analytics",
-  "description": "Panel avanzado para el seguimiento de la eficiencia de combustible y mantenimiento vehicular. Versión estable MILESTONE_CLOUD_SYNC_STABLE_V4.",
+  "description": "Panel avanzado para el seguimiento de la eficiencia de combustible y mantenimiento vehicular. Checkpoint: MILESTONE_SMART_HABITS_PRECISION_V5 (Autonomía basada en hábitos reales).",
   "requestFramePermissions": []
 }

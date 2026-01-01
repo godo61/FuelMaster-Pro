@@ -58,7 +58,10 @@ export const translations = {
     tripCalculator: "Calculadora de Trayecto",
     tripDistance: "Distancia del Viaje (km)",
     estFuel: "Combustible Est.",
-    estCost: "Coste Est."
+    estCost: "Coste Est.",
+    theoreticalRange: "Autonomía Inteligente",
+    fullTankRange: "Rango Habitual (Media)",
+    maxPotential: "Máximo Teórico (43L)"
   },
   en: {
     appTitle: "FuelMaster Pro",
@@ -119,6 +122,9 @@ export const translations = {
     tripCalculator: "Trip Calculator",
     tripDistance: "Trip Distance (km)",
     estFuel: "Est. Fuel",
-    estCost: "Est. Cost"
+    estCost: "Est. Cost",
+    theoreticalRange: "Smart Range",
+    fullTankRange: "Typical Range (Avg)",
+    maxPotential: "Theoretical Max (43L)"
   }
 };
