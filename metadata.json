@@ -1,6 +1,5 @@
-
 {
   "name": "FuelMaster Pro - Toyota Analytics",
-  "description": "Panel avanzado para el seguimiento de la eficiencia de combustible y mantenimiento vehicular. Checkpoint: MILESTONE_FULL_AESTHETICS_V6 (Eco-Dashboard y Gauges de Mantenimiento completados).",
+  "description": "Panel avanzado para el seguimiento de la eficiencia de combustible y mantenimiento vehicular. Checkpoint: MILESTONE_V7_UX_INTEGRITY_AND_RECOVERY (Restauración de botones y corrección de jerarquía visual de ahorros).",
   "requestFramePermissions": []
 }
