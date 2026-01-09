@@ -1,5 +1,7 @@
 
 
+
+
 import { CalculatedEntry } from '../types';
 
 export const generateCSV = (entries: CalculatedEntry[]): string => {
@@ -41,3 +43,4 @@ export const downloadCSV = (entries: CalculatedEntry[], filename: string) => {
   link.click();
   document.body.removeChild(link);
 };
+

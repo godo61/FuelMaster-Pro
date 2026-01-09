@@ -244,25 +244,45 @@ const App: React.FC = () => {
     }
   };
 
+  // --- LÓGICA DE MANTENIMIENTO COMPLETA (TIEMPO vs KM) ---
   const getNextService = () => {
     if (!vehicleProfile?.lastServiceKm || !vehicleProfile?.lastServiceDate || !stats) return null;
     
-    const nextKm = vehicleProfile.lastServiceKm + 15000;
+    // 1. CÁLCULO POR KILÓMETROS
+    const kmDrivenSinceService = Math.max(0, stats.lastOdometer - vehicleProfile.lastServiceKm);
+    const rawKmRemaining = 15000 - kmDrivenSinceService;
+    const kmRemaining = Math.min(15000, Math.max(0, rawKmRemaining));
+    const kmPercent = Math.min((kmDrivenSinceService / 15000) * 100, 100);
+
+    // 2. CÁLCULO POR TIEMPO (1 AÑO)
     const lastDate = new Date(vehicleProfile.lastServiceDate);
     const nextDate = new Date(lastDate);
-    nextDate.setFullYear(nextDate.getFullYear() + 1);
+    nextDate.setFullYear(nextDate.getFullYear() + 1); // Sumar 1 año
     
-    const kmRemaining = nextKm - stats.lastOdometer;
+    const today = new Date();
+    // Calculamos días totales del intervalo (365 o 366)
+    const totalTimeMs = nextDate.getTime() - lastDate.getTime();
+    // Tiempo transcurrido desde la revisión hasta hoy
+    const elapsedTimeMs = today.getTime() - lastDate.getTime();
+    
+    // Porcentaje de tiempo consumido (evitando negativos o >100)
+    const timePercent = Math.max(0, Math.min(100, (elapsedTimeMs / totalTimeMs) * 100));
+    
     const daysRemaining = getDaysRemaining(nextDate.toISOString());
-    const kmUsed = 15000 - kmRemaining;
-    const servicePercent = Math.min((kmUsed / 15000) * 100, 100);
+
+    // 3. DETERMINAR EL FACTOR LIMITANTE (¿Qué vence antes?)
+    const isTimeLimit = timePercent > kmPercent;
+    
+    // El porcentaje final será el mayor de los dos (el "peor" caso)
+    const servicePercent = Math.max(kmPercent, timePercent);
     
     return {
-      nextKm,
+      nextKm: vehicleProfile.lastServiceKm + 15000,
       nextDate,
       kmRemaining,
       daysRemaining,
       servicePercent,
+      isTimeLimit, // Flag para la UI
       isUrgent: kmRemaining < 1000 || daysRemaining < 30
     };
   };
@@ -308,6 +328,7 @@ const App: React.FC = () => {
     );
   }
 
+  // --- CÁLCULO DE ITV ---
   const itvDate = vehicleProfile ? calculateNextITV(vehicleProfile.registrationDate, vehicleProfile.category, vehicleProfile.lastItvDate) : null;
   const isItvValid = itvDate && !isNaN(itvDate.getTime());
   const itvDays = isItvValid ? getDaysRemaining(itvDate!.toISOString()) : 0;
@@ -438,7 +459,7 @@ const App: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* CALCULADORA DE TRAYECTO - CORREGIDA */}
+                  {/* CALCULADORA DE TRAYECTO */}
                   <div className={`premium-card p-6 border-l-4 ${ecoBorder} flex flex-col gap-4 transition-colors duration-1000`}>
                     <h3 className="text-[10px] font-black uppercase flex items-center gap-2 text-white">
                       <MapPin size={14} className={ecoText} /> {String(t.tripCalculator)}
@@ -479,7 +500,6 @@ const App: React.FC = () => {
                             </div>
                           </div>
 
-                          {/* PANEL DE COMPARATIVA - BLOQUE CORREGIDO */}
                           {showComparison && (
                             <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3 animate-fade-in overflow-hidden relative group">
                                 <div className={`absolute top-0 left-0 w-1 h-full ${ecoBg}`}></div>
@@ -528,19 +548,44 @@ const App: React.FC = () => {
 
                       {maintenance ? (
                         <div className={`p-4 rounded-xl border transition-all ${maintenance.isUrgent ? 'bg-orange-500/10 border-orange-500/20' : 'bg-blue-500/10 border-blue-500/20'}`}>
-                          <p className="text-[8px] font-bold text-slate-500 uppercase mb-3">Revisión (15.000 KM)</p>
                           
-                          <div className="w-full h-3 bg-slate-900/50 rounded-full mb-3 overflow-hidden border border-white/5 relative">
+                          <div className="flex justify-between items-start mb-3">
+                            <p className="text-[8px] font-bold text-slate-500 uppercase">Próxima Revisión</p>
+                            <div className="text-right">
+                                <p className="text-[8px] font-black text-slate-400 uppercase">Fecha Límite</p>
+                                <p className="text-[10px] font-black text-white">{maintenance.nextDate.toLocaleDateString()}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="w-full h-3 bg-slate-900/50 rounded-full mb-4 overflow-hidden border border-white/5 relative">
                              <div 
                                 className={`h-full transition-all duration-1000 ease-out ${maintenance.isUrgent ? 'bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.4)]' : 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.4)]'}`}
                                 style={{ width: `${maintenance.servicePercent}%` }}
                              ></div>
                           </div>
 
-                          <div className="flex justify-between items-baseline">
-                             <p className={`text-xl font-black font-mono-prec ${maintenance.kmRemaining < 1000 ? 'text-orange-500' : 'text-white'}`}>{maintenance.kmRemaining.toLocaleString()} <span className="text-[10px] font-sans">km</span></p>
-                             <p className="text-[8px] text-slate-500 uppercase font-black">{maintenance.servicePercent.toFixed(0)}% Utilizado</p>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className={`p-2 rounded-lg border ${!maintenance.isTimeLimit ? 'bg-slate-800/50 border-white/10' : 'bg-slate-900/30 border-transparent'}`}>
+                                <p className="text-[7px] text-slate-500 uppercase font-bold mb-1">Distancia</p>
+                                <p className={`text-lg font-black font-mono-prec ${!maintenance.isTimeLimit ? (maintenance.isUrgent ? 'text-orange-500' : 'text-blue-400') : 'text-slate-300'}`}>
+                                    {maintenance.kmRemaining.toLocaleString()}
+                                    <span className="text-[8px] font-sans text-slate-500 ml-1">KM</span>
+                                </p>
+                            </div>
+
+                            <div className={`p-2 rounded-lg border ${maintenance.isTimeLimit ? 'bg-slate-800/50 border-white/10' : 'bg-slate-900/30 border-transparent'}`}>
+                                <p className="text-[7px] text-slate-500 uppercase font-bold mb-1">Tiempo</p>
+                                <p className={`text-lg font-black font-mono-prec ${maintenance.isTimeLimit ? (maintenance.isUrgent ? 'text-orange-500' : 'text-blue-400') : 'text-slate-300'}`}>
+                                    {maintenance.daysRemaining}
+                                    <span className="text-[8px] font-sans text-slate-500 ml-1">DÍAS</span>
+                                </p>
+                            </div>
                           </div>
+                          
+                          <p className="text-[8px] text-slate-500 uppercase font-black text-center mt-3">
+                              {maintenance.servicePercent.toFixed(0)}% de vida útil consumida
+                          </p>
+
                         </div>
                       ) : (
                         <div className="p-4 rounded-xl bg-slate-900 border border-white/5">
@@ -548,7 +593,6 @@ const App: React.FC = () => {
                         </div>
                       )}
 
-                      {/* BOTÓN GESTIONAR PERFIL RESTAURADO */}
                       <button 
                         onClick={() => setShowHelp(true)}
                         className="w-full mt-2 py-3 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-[8px] font-black uppercase rounded-lg border border-blue-500/20 transition-all flex items-center justify-center gap-2"
@@ -660,7 +704,7 @@ const App: React.FC = () => {
 
               <div className="mt-12 pt-8 border-t border-red-500/20 text-center">
                  <button onClick={handleClearAllData} className="text-red-500 font-black uppercase text-[10px] tracking-widest hover:text-red-400 transition-all">
-                    Borrar base de datos local
+                   Borrar base de datos local
                  </button>
               </div>
             </div>

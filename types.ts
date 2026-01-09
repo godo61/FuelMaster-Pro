@@ -53,3 +53,4 @@ export interface VehicleProfile {
   lastServiceKm?: number; // Kilometraje del último mantenimiento
   lastServiceDate?: string; // Fecha del último mantenimiento
 }
+}

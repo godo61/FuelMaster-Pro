@@ -1,5 +1,7 @@
 
 
+
+
 import { FuelEntry, CalculatedEntry, SummaryStats } from '../types';
 
 export const parseToDate = (dateStr: string): Date => {
@@ -80,3 +82,4 @@ export const getSummaryStats = (entries: CalculatedEntry[]): SummaryStats => {
     lastOdometer: last.kmFinal
   };
 };
+
