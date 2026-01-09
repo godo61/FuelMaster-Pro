@@ -5,6 +5,10 @@ export default defineConfig({
   plugins: [react()],
   base: './', // CRÍTICO: Rutas relativas para que funcione en cualquier subcarpeta
   publicDir: 'public', // CORREGIDO: Apunta explícitamente a tu nueva carpeta 'public' (o bórrala, es el valor por defecto)
+  server: {
+    port: 3000, // <--- AÑADE ESTO: Forzamos a que use el puerto 3000
+    open: true  // Opcional: Esto abre el navegador solo al arrancar
+  },
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
