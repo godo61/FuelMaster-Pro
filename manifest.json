@@ -4,35 +4,35 @@
   "description": "Análisis avanzado de combustible para Toyota",
   "icons": [
     {
-      "src": "./icon-32.png",
+      "src": "/icon-32.png",
       "type": "image/png",
       "sizes": "32x32",
       "purpose": "any"
     },
     {
-      "src": "./icon-512.png",
+      "src": "/icon-512.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any"
     },
     {
-      "src": "./icon-512.png",
+      "src": "/icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "maskable"
     },
     {
-      "src": "./icon-512.png",
+      "src": "/icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any"
     }
   ],
-  "start_url": "./index.html",
+  "start_url": "/",
   "display": "standalone",
   "display_override": ["window-controls-overlay"],
   "orientation": "portrait",
   "background_color": "#020617",
   "theme_color": "#10b981",
-  "scope": "./"
+  "scope": "/"
 }
