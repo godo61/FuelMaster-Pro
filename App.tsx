@@ -5,6 +5,7 @@ import {
   Database, Lock, Download, LogOut, Smartphone, ShieldCheck, 
   AlertCircle, Calendar, Sun, Moon, Mail, FileText, Globe, Settings, AlertTriangle, MapPin, Car, Info
 } from 'lucide-react';
+// Imports ajustados a la RAÍZ (sin src/)
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { FuelEntry, CalculatedEntry, SummaryStats, VehicleProfile, VehicleCategory } from './types';
 import { parseFuelCSV } from './utils/csvParser';
@@ -224,11 +225,36 @@ const App: React.FC = () => {
     setEntries(entries.filter(e => e.id !== id));
   };
 
-  const handleBackupEmail = (email: string) => {
+  // --- FUNCIÓN BACKUP PRO CORREGIDA PARA FUELMASTER ---
+  const handleBackupEmail = async (email: string) => {
     if (!email) return;
+    
+    // 1. Generamos el contenido CSV con los datos de FuelMaster
     const csvContent = generateCSV(calculatedEntries);
+    const fileName = `FuelMaster_Backup_${new Date().toISOString().split('T')[0]}.csv`;
+    
+    // 2. Creamos el archivo virtual (File)
+    const file = new File([csvContent], fileName, { type: 'text/csv' });
+
+    // 3. Intentamos usar la API nativa de compartir (Móvil/App Moderna)
+    // Esto abrirá el menú de compartir con el archivo adjunto (clip)
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          title: 'FuelMaster Pro Backup',
+          text: 'Aquí tienes tu copia de seguridad de FuelMaster Pro.',
+          files: [file]
+        });
+        setShowBackup(false);
+        return; 
+      } catch (err) {
+        console.log("Compartir cancelado o no soportado, usando fallback");
+      }
+    }
+
+    // 4. Fallback: Si no soporta adjuntos, usamos mailto con texto (lo de antes)
     const subject = `FuelMaster Pro Backup - ${new Date().toLocaleDateString()}`;
-    const body = `Hola,\n\nAdjunto tu backup de FuelMaster Pro.\n\nContenido CSV:\n\n${csvContent}`;
+    const body = `Hola,\n\nTu dispositivo no soporta adjuntos automáticos.\nAquí tienes los datos en texto plano:\n\n${csvContent}`;
     window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     setShowBackup(false);
   };
@@ -244,36 +270,25 @@ const App: React.FC = () => {
     }
   };
 
-  // --- LÓGICA DE MANTENIMIENTO COMPLETA (TIEMPO vs KM) ---
   const getNextService = () => {
     if (!vehicleProfile?.lastServiceKm || !vehicleProfile?.lastServiceDate || !stats) return null;
     
-    // 1. CÁLCULO POR KILÓMETROS
     const kmDrivenSinceService = Math.max(0, stats.lastOdometer - vehicleProfile.lastServiceKm);
     const rawKmRemaining = 15000 - kmDrivenSinceService;
     const kmRemaining = Math.min(15000, Math.max(0, rawKmRemaining));
     const kmPercent = Math.min((kmDrivenSinceService / 15000) * 100, 100);
 
-    // 2. CÁLCULO POR TIEMPO (1 AÑO)
     const lastDate = new Date(vehicleProfile.lastServiceDate);
     const nextDate = new Date(lastDate);
-    nextDate.setFullYear(nextDate.getFullYear() + 1); // Sumar 1 año
+    nextDate.setFullYear(nextDate.getFullYear() + 1); 
     
     const today = new Date();
-    // Calculamos días totales del intervalo (365 o 366)
     const totalTimeMs = nextDate.getTime() - lastDate.getTime();
-    // Tiempo transcurrido desde la revisión hasta hoy
     const elapsedTimeMs = today.getTime() - lastDate.getTime();
-    
-    // Porcentaje de tiempo consumido (evitando negativos o >100)
     const timePercent = Math.max(0, Math.min(100, (elapsedTimeMs / totalTimeMs) * 100));
     
     const daysRemaining = getDaysRemaining(nextDate.toISOString());
-
-    // 3. DETERMINAR EL FACTOR LIMITANTE (¿Qué vence antes?)
     const isTimeLimit = timePercent > kmPercent;
-    
-    // El porcentaje final será el mayor de los dos (el "peor" caso)
     const servicePercent = Math.max(kmPercent, timePercent);
     
     return {
@@ -282,7 +297,7 @@ const App: React.FC = () => {
       kmRemaining,
       daysRemaining,
       servicePercent,
-      isTimeLimit, // Flag para la UI
+      isTimeLimit,
       isUrgent: kmRemaining < 1000 || daysRemaining < 30
     };
   };
@@ -539,8 +554,8 @@ const App: React.FC = () => {
                         <div className={`p-4 rounded-xl border transition-all ${getItvBgClass(itvDays)}`}>
                            <p className="text-[8px] font-bold text-slate-500 uppercase">{String(t.itvRemaining)}</p>
                            <div className="flex items-center gap-3">
-                              <p className={`text-2xl font-black font-mono-prec ${getItvColorClass(itvDays)}`}>{itvDays}</p>
-                              {itvDays <= 30 && <AlertCircle size={16} className={getItvColorClass(itvDays)} />}
+                             <p className={`text-2xl font-black font-mono-prec ${getItvColorClass(itvDays)}`}>{itvDays}</p>
+                             {itvDays <= 30 && <AlertCircle size={16} className={getItvColorClass(itvDays)} />}
                            </div>
                            <p className="text-[8px] font-black uppercase text-slate-500">Vencimiento: {itvDate?.toLocaleDateString()}</p>
                         </div>
@@ -691,12 +706,12 @@ const App: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-[9px] font-black text-slate-500 uppercase">Tipo de Vehículo</label>
-                    <select name="category" defaultValue={vehicleProfile?.category || 'turismo'} className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500 appearance-none">
-                      <option value="turismo">Turismo Particular</option>
-                      <option value="furgoneta">Furgoneta (≤3.5t)</option>
-                      <option value="motocicleta">Motocicleta</option>
-                    </select>
+                   <label className="text-[9px] font-black text-slate-500 uppercase">Tipo de Vehículo</label>
+                   <select name="category" defaultValue={vehicleProfile?.category || 'turismo'} className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500 appearance-none">
+                     <option value="turismo">Turismo Particular</option>
+                     <option value="furgoneta">Furgoneta (≤3.5t)</option>
+                     <option value="motocicleta">Motocicleta</option>
+                   </select>
                 </div>
                 
                 <button type="submit" className={`w-full py-5 ${ecoBg} text-slate-950 rounded-xl font-black uppercase text-xs tracking-[0.2em] shadow-lg ${ecoShadow} hover:scale-[1.02] transition-all duration-1000`}>Sincronizar Perfil</button>
