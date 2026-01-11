@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Upload, Zap, Activity, Wrench, X, RefreshCw, Plus, 
   Euro, Navigation, Trash2, Fuel, TrendingUp, 
   Database, Lock, Download, LogOut, Smartphone, ShieldCheck, 
-  AlertCircle, Calendar, Sun, Moon, Mail, FileText, Globe, Settings, AlertTriangle, MapPin, Car, Info
+  AlertCircle, Calendar, Sun, Moon, Mail, FileText, Globe, Settings, AlertTriangle, MapPin, Car, Info, BarChart3
 } from 'lucide-react';
 // Imports ajustados a la RAÍZ (sin src/)
 import { supabase, isSupabaseConfigured } from './lib/supabase';
@@ -55,6 +55,8 @@ const App: React.FC = () => {
   const [showNewEntry, setShowNewEntry] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showBackup, setShowBackup] = useState(false);
+  // NUEVO ESTADO: Controla el modal de reporte anual
+  const [showAnnualStats, setShowAnnualStats] = useState(false);
 
   const [newEntryForm, setNewEntryForm] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -183,6 +185,38 @@ const App: React.FC = () => {
     }
   }, [entries]);
 
+  // --- NUEVA LÓGICA: CÁLCULO DE KM ANUALES ---
+  const annualStats = useMemo(() => {
+    if (!calculatedEntries.length) return { years: [], avgKm: 0 };
+
+    const yearsMap: Record<number, number> = {};
+    
+    calculatedEntries.forEach(entry => {
+      // Convertir fecha DD/MM/YYYY a objeto Date
+      const [day, month, year] = entry.date.split('/').map(Number);
+      if (year && !isNaN(year)) {
+        yearsMap[year] = (yearsMap[year] || 0) + (entry.distancia || 0);
+      }
+    });
+
+    const years = Object.keys(yearsMap)
+      .map(Number)
+      .sort((a, b) => b - a) // Orden descendente (2024, 2023...)
+      .map(year => ({
+        year,
+        totalKm: yearsMap[year]
+      }));
+
+    // Calcular media anual (excluyendo el año actual si está incompleto, opcionalmente)
+    // Aquí hacemos una media simple de todos los años registrados
+    const totalKmAllTime = years.reduce((acc, curr) => acc + curr.totalKm, 0);
+    const avgKm = years.length > 0 ? totalKmAllTime / years.length : 0;
+    const maxYearKm = Math.max(...years.map(y => y.totalKm), 1); // Para escalar la barra gráfica
+
+    return { years, avgKm, maxYearKm };
+  }, [calculatedEntries]);
+
+
   const handleSaveVehicle = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -225,19 +259,12 @@ const App: React.FC = () => {
     setEntries(entries.filter(e => e.id !== id));
   };
 
-  // --- FUNCIÓN BACKUP PRO CORREGIDA PARA FUELMASTER ---
   const handleBackupEmail = async (email: string) => {
     if (!email) return;
-    
-    // 1. Generamos el contenido CSV con los datos de FuelMaster
     const csvContent = generateCSV(calculatedEntries);
     const fileName = `FuelMaster_Backup_${new Date().toISOString().split('T')[0]}.csv`;
-    
-    // 2. Creamos el archivo virtual (File)
     const file = new File([csvContent], fileName, { type: 'text/csv' });
 
-    // 3. Intentamos usar la API nativa de compartir (Móvil/App Moderna)
-    // Esto abrirá el menú de compartir con el archivo adjunto (clip)
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
         await navigator.share({
@@ -247,12 +274,9 @@ const App: React.FC = () => {
         });
         setShowBackup(false);
         return; 
-      } catch (err) {
-        console.log("Compartir cancelado o no soportado, usando fallback");
-      }
+      } catch (err) { }
     }
 
-    // 4. Fallback: Si no soporta adjuntos, usamos mailto con texto (lo de antes)
     const subject = `FuelMaster Pro Backup - ${new Date().toLocaleDateString()}`;
     const body = `Hola,\n\nTu dispositivo no soporta adjuntos automáticos.\nAquí tienes los datos en texto plano:\n\n${csvContent}`;
     window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -260,7 +284,7 @@ const App: React.FC = () => {
   };
 
   const handleClearAllData = () => {
-    if (confirm("⚠️ AVISO CRÍTICO ⚠️\n\n¿Estás seguro de que quieres BORRAR TODO? Se eliminarán todos los repostajes y la configuración del vehículo.")) {
+    if (confirm("⚠️ AVISO CRÍTICO ⚠️\n\n¿Estás seguro de que quieres BORRAR TODO?")) {
       if (confirm("¿Estás realmente seguro? Esta acción es irreversible.")) {
         localStorage.clear();
         setEntries([]);
@@ -343,7 +367,7 @@ const App: React.FC = () => {
     );
   }
 
-  // --- CÁLCULO DE ITV ---
+  // --- RENDERIZADO PRINCIPAL ---
   const itvDate = vehicleProfile ? calculateNextITV(vehicleProfile.registrationDate, vehicleProfile.category, vehicleProfile.lastItvDate) : null;
   const isItvValid = itvDate && !isNaN(itvDate.getTime());
   const itvDays = isItvValid ? getDaysRemaining(itvDate!.toISOString()) : 0;
@@ -631,6 +655,10 @@ const App: React.FC = () => {
                     <button onClick={() => setShowBackup(true)} className="w-full py-4 premium-card flex items-center justify-center gap-3 text-[10px] font-black uppercase hover:border-amber-500 transition-all text-amber-500">
                       <Mail size={14}/> BACKUP EMAIL
                     </button>
+                    {/* NUEVO BOTÓN: REPORTE ANUAL */}
+                    <button onClick={() => setShowAnnualStats(true)} className="w-full py-4 premium-card flex items-center justify-center gap-3 text-[10px] font-black uppercase hover:border-violet-500 transition-all text-violet-500">
+                      <BarChart3 size={14}/> REPORTE ANUAL
+                    </button>
                   </div>
                 </div>
               </div>
@@ -676,6 +704,48 @@ const App: React.FC = () => {
         <Plus size={28} />
       </button>
 
+      {/* MODAL DE REPORTE ANUAL (NUEVO) */}
+      {showAnnualStats && (
+        <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6 sm:p-8 animate-fade-in">
+          <div className="premium-card w-full max-w-2xl p-8 relative overflow-y-auto max-h-[90vh] shadow-2xl">
+            <button onClick={() => setShowAnnualStats(false)} className="absolute top-6 right-6 text-slate-500 hover:text-white transition-all"><X size={32}/></button>
+            
+            <div className="text-center mb-10">
+              <div className="w-16 h-16 bg-violet-500/20 text-violet-500 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-violet-500/20">
+                <BarChart3 size={32} />
+              </div>
+              <h3 className="text-2xl font-black italic uppercase text-white">Reporte Anual</h3>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-2">Desglose de kilometraje por año</p>
+            </div>
+
+            <div className="bg-slate-900/50 rounded-2xl border border-white/5 p-6 mb-8 text-center">
+               <p className="text-[9px] font-black text-slate-500 uppercase mb-2">Media Anual Histórica</p>
+               <p className="text-4xl font-black text-white font-mono-prec">
+                 {annualStats.avgKm.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                 <span className="text-sm font-sans text-slate-500 ml-2">KM</span>
+               </p>
+            </div>
+
+            <div className="space-y-4">
+              {annualStats.years.map(({ year, totalKm }) => (
+                <div key={year} className="group">
+                  <div className="flex justify-between items-end mb-2 px-1">
+                    <span className="text-sm font-black text-slate-300">{year}</span>
+                    <span className="text-sm font-bold text-white font-mono-prec">{totalKm.toLocaleString()} <span className="text-[9px] text-slate-500">KM</span></span>
+                  </div>
+                  <div className="w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-white/5 relative">
+                    <div 
+                      className="h-full bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.4)] group-hover:bg-violet-400 transition-all duration-500"
+                      style={{ width: `${(totalKm / annualStats.maxYearKm) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {showHelp && (
         <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6 sm:p-8 animate-fade-in">
           <div className="premium-card w-full max-w-2xl p-8 relative overflow-y-auto max-h-[90vh] shadow-2xl">
@@ -683,6 +753,7 @@ const App: React.FC = () => {
             <div className={`p-6 bg-${ecoColor}-500/5 rounded-3xl border ${ecoBorder}/10`}>
               <h3 className="text-2xl font-black italic uppercase text-white mb-8">Gestión de Perfil</h3>
               <form onSubmit={handleSaveVehicle} className="space-y-8">
+                {/* ... (Resto del formulario de perfil igual) ... */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="space-y-2">
                       <label className="text-[9px] font-black text-slate-500 uppercase">Matriculación Inicial</label>
