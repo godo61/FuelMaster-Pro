@@ -185,11 +185,12 @@ const App: React.FC = () => {
     }
   }, [entries]);
 
-  // --- NUEVA LÓGICA: CÁLCULO DE KM ANUALES ---
+  // --- CÁLCULO DE KM ANUALES (LÓGICA PROFESIONAL) ---
   const annualStats = useMemo(() => {
-    if (!calculatedEntries.length) return { years: [], avgKm: 0 };
+    if (!calculatedEntries.length) return { years: [], avgKm: 0, maxYearKm: 1 };
 
     const yearsMap: Record<number, number> = {};
+    const currentYear = new Date().getFullYear();
     
     calculatedEntries.forEach(entry => {
       // Convertir fecha DD/MM/YYYY a objeto Date
@@ -201,21 +202,28 @@ const App: React.FC = () => {
 
     const years = Object.keys(yearsMap)
       .map(Number)
-      .sort((a, b) => b - a) // Orden descendente (2024, 2023...)
+      .sort((a, b) => b - a) // Orden descendente
       .map(year => ({
         year,
         totalKm: yearsMap[year]
       }));
 
-    // Calcular media anual (excluyendo el año actual si está incompleto, opcionalmente)
-    // Aquí hacemos una media simple de todos los años registrados
-    const totalKmAllTime = years.reduce((acc, curr) => acc + curr.totalKm, 0);
-    const avgKm = years.length > 0 ? totalKmAllTime / years.length : 0;
-    const maxYearKm = Math.max(...years.map(y => y.totalKm), 1); // Para escalar la barra gráfica
+    // Excluimos el año actual para la media histórica (para no falsear datos)
+    const completedYears = years.filter(y => y.year < currentYear);
+
+    let avgKm = 0;
+    if (completedYears.length > 0) {
+      const totalKmHistory = completedYears.reduce((acc, curr) => acc + curr.totalKm, 0);
+      avgKm = totalKmHistory / completedYears.length;
+    } else {
+      // Si solo hay datos de este año, usamos eso como referencia provisional
+      avgKm = years.length > 0 ? years[0].totalKm : 0;
+    }
+
+    const maxYearKm = Math.max(...years.map(y => y.totalKm), 1); 
 
     return { years, avgKm, maxYearKm };
   }, [calculatedEntries]);
-
 
   const handleSaveVehicle = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -367,7 +375,7 @@ const App: React.FC = () => {
     );
   }
 
-  // --- RENDERIZADO PRINCIPAL ---
+  // --- RENDERIZADO ---
   const itvDate = vehicleProfile ? calculateNextITV(vehicleProfile.registrationDate, vehicleProfile.category, vehicleProfile.lastItvDate) : null;
   const isItvValid = itvDate && !isNaN(itvDate.getTime());
   const itvDays = isItvValid ? getDaysRemaining(itvDate!.toISOString()) : 0;
