@@ -11,7 +11,7 @@ interface MaintenanceData {
   isUrgent: boolean;
 }
 
-// --- FUNCIÓN GENERADORA (Común) ---
+// --- GENERADOR DEL DOCUMENTO (COMÚN) ---
 const generatePDFDoc = (
   stats: SummaryStats, 
   entries: CalculatedEntry[], 
@@ -124,7 +124,7 @@ const generatePDFDoc = (
   return doc;
 };
 
-// --- EXPORTAR (DESCARGAR) ---
+// --- FUNCIÓN 1: DESCARGAR ---
 export const exportToPDF = (
   stats: SummaryStats, 
   entries: CalculatedEntry[], 
@@ -135,7 +135,7 @@ export const exportToPDF = (
   doc.save(`FuelMaster_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
 };
 
-// --- COMPARTIR (CORREGIDO) ---
+// --- FUNCIÓN 2: COMPARTIR (VERSIÓN ROBUSTA: SOLO ARCHIVO) ---
 export const sharePDF = async (
   stats: SummaryStats, 
   entries: CalculatedEntry[], 
@@ -144,26 +144,24 @@ export const sharePDF = async (
 ) => {
   const doc = generatePDFDoc(stats, entries, profile, maintenance);
   
-  // CORRECCIÓN: Usamos 'blob' que es más seguro para archivos
+  // Usamos 'blob' que es lo más estándar para móviles
   const blob = doc.output('blob');
   const fileName = `FuelMaster_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
   const file = new File([blob], fileName, { type: 'application/pdf' });
 
-  // CORRECCIÓN: Validamos soporte + Añadimos texto para evitar "mensaje vacío"
+  // Intentamos compartir SOLO EL ARCHIVO (sin texto ni título para no liar a WhatsApp/Gmail)
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
       await navigator.share({
-        title: 'Informe FuelMaster Pro', // Título para el menú del móvil
-        text: 'Adjunto informe de mantenimiento y consumo.', // Texto para WhatsApp/Email
         files: [file]
       });
+      return;
     } catch (err) {
-      console.log('Error compartiendo:', err);
-      // Si falla compartir (ej: usuario cancela), no hacemos nada
+      console.log('Error o cancelación al compartir:', err);
     }
-  } else {
-    // Fallback: Si no soporta compartir, descargamos
-    alert("Tu dispositivo no soporta compartir archivos directos. Se iniciará la descarga.");
-    doc.save(fileName);
   }
+
+  // Si llegamos aquí es que falló o no es compatible -> DESCARGA AUTOMÁTICA
+  alert("No se pudo abrir el menú de compartir. Descargando archivo...");
+  doc.save(fileName);
 };
