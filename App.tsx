@@ -3,7 +3,7 @@ import {
   Upload, Zap, Activity, Wrench, X, RefreshCw, Plus, 
   Euro, Navigation, Trash2, Fuel, TrendingUp, 
   Database, Lock, Download, LogOut, Smartphone, ShieldCheck, 
-  AlertCircle, Calendar, Sun, Moon, Mail, FileText, Globe, Settings, AlertTriangle, MapPin, Car, Info, BarChart3, Briefcase
+  AlertCircle, Calendar, Sun, Moon, Mail, FileText, Globe, Settings, AlertTriangle, MapPin, Car, Info, BarChart3, Briefcase, Share2
 } from 'lucide-react';
 // Imports ajustados a la RAÍZ (sin src/)
 import { supabase, isSupabaseConfigured } from './lib/supabase';
@@ -11,7 +11,7 @@ import { FuelEntry, CalculatedEntry, SummaryStats, VehicleProfile, VehicleCatego
 import { parseFuelCSV } from './utils/csvParser';
 import { calculateEntries, getSummaryStats, getDaysRemaining } from './utils/calculations';
 import { calculateNextITV } from './utils/itvLogic';
-import { exportToPDF } from './utils/pdfExport';
+import { exportToPDF, sharePDF } from './utils/pdfExport'; 
 import { downloadCSV, generateCSV } from './utils/csvExport';
 import { translations } from './utils/translations';
 import StatCard from './components/StatCard';
@@ -29,7 +29,6 @@ const App: React.FC = () => {
   const [calculatedEntries, setCalculatedEntries] = useState<CalculatedEntry[]>([]);
   const [stats, setStats] = useState<SummaryStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  // CAMBIO: Añadido 'tools' al tipo de estado
   const [view, setView] = useState<'dashboard' | 'history' | 'tools'>('dashboard');
   
   const [theme, setTheme] = useState<'dark' | 'light'>(() => (localStorage.getItem(THEME_KEY) as 'dark' | 'light') || 'dark');
@@ -185,7 +184,7 @@ const App: React.FC = () => {
     }
   }, [entries]);
 
-  // --- CÁLCULO DE KM ANUALES (LÓGICA PROFESIONAL) ---
+  // --- CÁLCULO DE KM ANUALES ---
   const annualStats = useMemo(() => {
     if (!calculatedEntries.length) return { years: [], avgKm: 0, maxYearKm: 1 };
 
@@ -264,27 +263,40 @@ const App: React.FC = () => {
     setEntries(entries.filter(e => e.id !== id));
   };
 
+  // --- FUNCIÓN BACKUP EMAIL ROBUSTA ---
   const handleBackupEmail = async (email: string) => {
-    if (!email) return;
+    // 1. Generar contenido
     const csvContent = generateCSV(calculatedEntries);
     const fileName = `FuelMaster_Backup_${new Date().toISOString().split('T')[0]}.csv`;
+    
+    // 2. Crear archivo con tipo MIME explícito
     const file = new File([csvContent], fileName, { type: 'text/csv' });
 
+    // 3. Estrategia de Compartir
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
         await navigator.share({
-          title: 'FuelMaster Pro Backup',
-          text: 'Aquí tienes tu copia de seguridad de FuelMaster Pro.',
+          title: 'FuelMaster Backup',
+          text: 'Copia de seguridad adjunta (CSV).',
           files: [file]
         });
         setShowBackup(false);
-        return; 
-      } catch (err) { }
+        return; // Éxito
+      } catch (err) {
+        console.log("Error al compartir, intentando método fallback");
+      }
     }
 
+    // 4. Fallback (Método antiguo mailto)
     const subject = `FuelMaster Pro Backup - ${new Date().toLocaleDateString()}`;
-    const body = `Hola,\n\nTu dispositivo no soporta adjuntos automáticos.\nAquí tienes los datos en texto plano:\n\n${csvContent}`;
-    window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const body = `Hola,\n\nTu dispositivo no pudo adjuntar el archivo.\nAquí tienes los datos en bruto para copiar y pegar:\n\n${csvContent}`;
+    
+    if (email) {
+       window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    } else {
+       alert("No se pudo abrir el menú de compartir. Por favor introduce un email.");
+    }
+    
     setShowBackup(false);
   };
 
@@ -443,7 +455,6 @@ const App: React.FC = () => {
             <div className="bg-slate-800/20 p-1 rounded-xl flex">
               <button onClick={() => setView('dashboard')} className={`px-3 sm:px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all duration-500 ${view === 'dashboard' ? `${ecoBg} text-slate-950` : 'text-slate-500'}`}>{String(t.monitor)}</button>
               <button onClick={() => setView('history')} className={`px-3 sm:px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all duration-500 ${view === 'history' ? `${ecoBg} text-slate-950` : 'text-slate-500'}`}>{String(t.history)}</button>
-              {/* NUEVO BOTÓN: HERRAMIENTAS */}
               <button onClick={() => setView('tools')} className={`px-3 sm:px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all duration-500 flex items-center gap-1 ${view === 'tools' ? `${ecoBg} text-slate-950` : 'text-slate-500'}`}>
                 <Briefcase size={12} /> HERRAMIENTAS
               </button>
@@ -696,7 +707,7 @@ const App: React.FC = () => {
                     <p className="text-xs text-slate-500 font-bold leading-relaxed">Carga un archivo CSV existente para actualizar tu historial de repostajes.</p>
                   </button>
 
-                  {/* Tarjeta 2: Exportar */}
+                  {/* Tarjeta 2: Exportar CSV */}
                   <button onClick={() => downloadCSV(calculatedEntries, 'FuelMaster_Backup.csv')} className="group bg-slate-900/50 border border-white/5 hover:border-blue-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
                     <div className="w-12 h-12 bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                       <FileText size={24} />
@@ -705,27 +716,36 @@ const App: React.FC = () => {
                     <p className="text-xs text-slate-500 font-bold leading-relaxed">Descarga tus datos crudos en formato CSV para usarlos en Excel.</p>
                   </button>
 
-                  {/* Tarjeta 3: PDF Report */}
+                  {/* Tarjeta 3: Descargar PDF */}
                   <button onClick={() => exportToPDF(stats, calculatedEntries, vehicleProfile, maintenance)} className="group bg-slate-900/50 border border-white/5 hover:border-emerald-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
                     <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                       <Download size={24} />
                     </div>
-                    <h3 className="text-lg font-black uppercase text-white mb-2">Reporte PDF Oficial</h3>
-                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Genera un documento profesional con estado del vehículo, mantenimiento e historial.</p>
+                    <h3 className="text-lg font-black uppercase text-white mb-2">Descargar Reporte</h3>
+                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Guarda el informe oficial en tu dispositivo para consulta rápida.</p>
+                  </button>
+                  
+                  {/* Tarjeta 4: Compartir PDF (NUEVO) */}
+                  <button onClick={() => sharePDF(stats, calculatedEntries, vehicleProfile, maintenance)} className="group bg-slate-900/50 border border-white/5 hover:border-violet-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
+                    <div className="w-12 h-12 bg-violet-500/10 text-violet-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                      <Share2 size={24} />
+                    </div>
+                    <h3 className="text-lg font-black uppercase text-white mb-2">Compartir PDF</h3>
+                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Envía el reporte oficial por WhatsApp, Email o cualquier app de mensajería.</p>
                   </button>
 
-                  {/* Tarjeta 4: Backup Email */}
+                  {/* Tarjeta 5: Backup Email (CSV) */}
                   <button onClick={() => setShowBackup(true)} className="group bg-slate-900/50 border border-white/5 hover:border-amber-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
                     <div className="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                       <Mail size={24} />
                     </div>
-                    <h3 className="text-lg font-black uppercase text-white mb-2">Backup por Email</h3>
-                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Envía una copia de seguridad completa adjunta a tu correo electrónico.</p>
+                    <h3 className="text-lg font-black uppercase text-white mb-2">Backup CSV Email</h3>
+                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Envía una copia de seguridad de los datos (CSV) adjunta a tu correo.</p>
                   </button>
 
-                  {/* Tarjeta 5: Reporte Anual */}
-                  <button onClick={() => setShowAnnualStats(true)} className="group bg-slate-900/50 border border-white/5 hover:border-violet-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl md:col-span-2">
-                    <div className="w-12 h-12 bg-violet-500/10 text-violet-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  {/* Tarjeta 6: Analítica Anual */}
+                  <button onClick={() => setShowAnnualStats(true)} className="group bg-slate-900/50 border border-white/5 hover:border-pink-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
+                    <div className="w-12 h-12 bg-pink-500/10 text-pink-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                       <BarChart3 size={24} />
                     </div>
                     <h3 className="text-lg font-black uppercase text-white mb-2">Analítica Anual</h3>
@@ -763,7 +783,7 @@ const App: React.FC = () => {
             <button onClick={() => setShowAnnualStats(false)} className="absolute top-6 right-6 text-slate-500 hover:text-white transition-all"><X size={32}/></button>
             
             <div className="text-center mb-10">
-              <div className="w-16 h-16 bg-violet-500/20 text-violet-500 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-violet-500/20">
+              <div className="w-16 h-16 bg-pink-500/20 text-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-pink-500/20">
                 <BarChart3 size={32} />
               </div>
               <h3 className="text-2xl font-black italic uppercase text-white">Reporte Anual</h3>
@@ -787,7 +807,7 @@ const App: React.FC = () => {
                   </div>
                   <div className="w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-white/5 relative">
                     <div 
-                      className="h-full bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.4)] group-hover:bg-violet-400 transition-all duration-500"
+                      className="h-full bg-pink-500 shadow-[0_0_10px_rgba(236,72,153,0.4)] group-hover:bg-pink-400 transition-all duration-500"
                       style={{ width: `${(totalKm / annualStats.maxYearKm) * 100}%` }}
                     />
                   </div>
@@ -798,7 +818,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Resto de modales (ShowHelp, ShowImport, ShowBackup, ShowNewEntry) se mantienen igual */}
+      {/* Resto de modales se mantienen igual */}
       {showHelp && (
         <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6 sm:p-8 animate-fade-in">
           <div className="premium-card w-full max-w-2xl p-8 relative overflow-y-auto max-h-[90vh] shadow-2xl">
