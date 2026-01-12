@@ -13,7 +13,6 @@ interface MaintenanceData {
 }
 
 // --- FUNCIÓN GENERADORA INTERNA (NO SE EXPORTA) ---
-// Esta función crea el documento pero no lo guarda, solo lo devuelve.
 const generatePDFDoc = (
   stats: SummaryStats, 
   entries: CalculatedEntry[], 
@@ -126,7 +125,7 @@ const generatePDFDoc = (
   return doc;
 };
 
-// --- FUNCIÓN 1: DESCARGAR (EXISTENTE) ---
+// --- FUNCIÓN 1: DESCARGAR ---
 export const exportToPDF = (
   stats: SummaryStats, 
   entries: CalculatedEntry[], 
@@ -137,7 +136,7 @@ export const exportToPDF = (
   doc.save(`FuelMaster_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
 };
 
-// --- FUNCIÓN 2: COMPARTIR (NUEVA) ---
+// --- FUNCIÓN 2: COMPARTIR (CORREGIDA) ---
 export const sharePDF = async (
   stats: SummaryStats, 
   entries: CalculatedEntry[], 
@@ -145,23 +144,28 @@ export const sharePDF = async (
   maintenance: MaintenanceData | null
 ) => {
   const doc = generatePDFDoc(stats, entries, profile, maintenance);
-  const blob = doc.output('blob'); // Generamos el archivo en memoria
+  
+  // 1. Usamos arraybuffer para máxima compatibilidad binaria
+  const pdfOutput = doc.output('arraybuffer');
+  
+  // 2. Creamos el archivo
   const fileName = `FuelMaster_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
-  const file = new File([blob], fileName, { type: 'application/pdf' });
+  const file = new File([pdfOutput], fileName, { type: 'application/pdf' });
 
+  // 3. Verificamos soporte
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
+      // 4. TRUCO CLAVE: No enviamos 'text' ni 'title', solo 'files'.
+      // Esto fuerza al móvil a tratarlo como un archivo adjunto puro.
       await navigator.share({
-        title: 'Informe FuelMaster Pro',
-        text: 'Adjunto el informe de mantenimiento y consumo del vehículo.',
         files: [file]
       });
     } catch (err) {
-      console.log('Error al compartir o cancelado por usuario');
+      console.log('Compartir cancelado o fallido', err);
     }
   } else {
-    // Fallback si no soporta compartir: lo descargamos
-    alert("Tu dispositivo no soporta compartir archivos directos. Se descargará el PDF.");
+    // Fallback: Si no soporta compartir archivos, lo descargamos
+    alert("Tu dispositivo no permite compartir este archivo directamente. Se descargará en su lugar.");
     doc.save(fileName);
   }
 };
