@@ -3,7 +3,7 @@ import {
   Upload, Zap, Activity, Wrench, X, RefreshCw, Plus, 
   Euro, Navigation, Trash2, Fuel, TrendingUp, 
   Database, Lock, Download, LogOut, Smartphone, ShieldCheck, 
-  AlertCircle, Calendar, Sun, Moon, Mail, FileText, Globe, Settings, AlertTriangle, MapPin, Car, Info, BarChart3
+  AlertCircle, Calendar, Sun, Moon, Mail, FileText, Globe, Settings, AlertTriangle, MapPin, Car, Info, BarChart3, Briefcase
 } from 'lucide-react';
 // Imports ajustados a la RAÍZ (sin src/)
 import { supabase, isSupabaseConfigured } from './lib/supabase';
@@ -29,7 +29,8 @@ const App: React.FC = () => {
   const [calculatedEntries, setCalculatedEntries] = useState<CalculatedEntry[]>([]);
   const [stats, setStats] = useState<SummaryStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [view, setView] = useState<'dashboard' | 'history'>('dashboard');
+  // CAMBIO: Añadido 'tools' al tipo de estado
+  const [view, setView] = useState<'dashboard' | 'history' | 'tools'>('dashboard');
   
   const [theme, setTheme] = useState<'dark' | 'light'>(() => (localStorage.getItem(THEME_KEY) as 'dark' | 'light') || 'dark');
   const [lang, setLang] = useState<'es' | 'en'>(() => (localStorage.getItem(LANG_KEY) as 'es' | 'en') || 'es');
@@ -55,7 +56,6 @@ const App: React.FC = () => {
   const [showNewEntry, setShowNewEntry] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showBackup, setShowBackup] = useState(false);
-  // NUEVO ESTADO: Controla el modal de reporte anual
   const [showAnnualStats, setShowAnnualStats] = useState(false);
 
   const [newEntryForm, setNewEntryForm] = useState({
@@ -193,7 +193,6 @@ const App: React.FC = () => {
     const currentYear = new Date().getFullYear();
     
     calculatedEntries.forEach(entry => {
-      // Convertir fecha DD/MM/YYYY a objeto Date
       const [day, month, year] = entry.date.split('/').map(Number);
       if (year && !isNaN(year)) {
         yearsMap[year] = (yearsMap[year] || 0) + (entry.distancia || 0);
@@ -202,13 +201,12 @@ const App: React.FC = () => {
 
     const years = Object.keys(yearsMap)
       .map(Number)
-      .sort((a, b) => b - a) // Orden descendente
+      .sort((a, b) => b - a)
       .map(year => ({
         year,
         totalKm: yearsMap[year]
       }));
 
-    // Excluimos el año actual para la media histórica (para no falsear datos)
     const completedYears = years.filter(y => y.year < currentYear);
 
     let avgKm = 0;
@@ -216,7 +214,6 @@ const App: React.FC = () => {
       const totalKmHistory = completedYears.reduce((acc, curr) => acc + curr.totalKm, 0);
       avgKm = totalKmHistory / completedYears.length;
     } else {
-      // Si solo hay datos de este año, usamos eso como referencia provisional
       avgKm = years.length > 0 ? years[0].totalKm : 0;
     }
 
@@ -375,7 +372,7 @@ const App: React.FC = () => {
     );
   }
 
-  // --- RENDERIZADO ---
+  // --- RENDERIZADO PRINCIPAL ---
   const itvDate = vehicleProfile ? calculateNextITV(vehicleProfile.registrationDate, vehicleProfile.category, vehicleProfile.lastItvDate) : null;
   const isItvValid = itvDate && !isNaN(itvDate.getTime());
   const itvDays = isItvValid ? getDaysRemaining(itvDate!.toISOString()) : 0;
@@ -446,6 +443,10 @@ const App: React.FC = () => {
             <div className="bg-slate-800/20 p-1 rounded-xl flex">
               <button onClick={() => setView('dashboard')} className={`px-3 sm:px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all duration-500 ${view === 'dashboard' ? `${ecoBg} text-slate-950` : 'text-slate-500'}`}>{String(t.monitor)}</button>
               <button onClick={() => setView('history')} className={`px-3 sm:px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all duration-500 ${view === 'history' ? `${ecoBg} text-slate-950` : 'text-slate-500'}`}>{String(t.history)}</button>
+              {/* NUEVO BOTÓN: HERRAMIENTAS */}
+              <button onClick={() => setView('tools')} className={`px-3 sm:px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all duration-500 flex items-center gap-1 ${view === 'tools' ? `${ecoBg} text-slate-950` : 'text-slate-500'}`}>
+                <Briefcase size={12} /> HERRAMIENTAS
+              </button>
             </div>
             
             <button onClick={() => setShowHelp(true)} className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-slate-400 hover:text-white transition-all hover:bg-white/5 rounded-xl"><Settings size={18}/></button>
@@ -457,6 +458,7 @@ const App: React.FC = () => {
       <main className="max-w-7xl mx-auto px-6 py-12 animate-fade-in">
         {stats ? (
           <div className="space-y-10">
+            {/* LAS TARJETAS DE ESTADÍSTICAS SIEMPRE VISIBLES */}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-6">
               <StatCard label={String(t.consumption)} value={stats.avgConsumption.toFixed(2)} unit="L/100" icon={<Activity size={20}/>} color="bg-blue-500" trendData={trends.consumption} />
               <StatCard label={String(t.efficiency)} value={stats.avgKmPerLiter.toFixed(2)} unit="km/L" icon={<Zap size={20}/>} color="bg-emerald-500" trendData={trends.efficiency} />
@@ -467,7 +469,8 @@ const App: React.FC = () => {
               <StatCard label={String(t.odometer)} value={stats.lastOdometer.toLocaleString()} unit="km" icon={<Navigation size={20}/>} color="bg-slate-500" trendData={trends.odometer} />
             </div>
 
-            {view === 'dashboard' ? (
+            {/* VISTA 1: DASHBOARD (Monitor) */}
+            {view === 'dashboard' && (
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
                 <div className="lg:col-span-3 space-y-10">
                   <div className="premium-card p-6 sm:p-10"><FuelChart data={calculatedEntries} type="consumption" /></div>
@@ -648,29 +651,12 @@ const App: React.FC = () => {
                       </button>
                     </div>
                   </div>
-
-                  {/* BOTONERA DE ACCIÓN */}
-                  <div className="grid grid-cols-1 gap-3">
-                    <button onClick={() => setShowImport(true)} className={`w-full py-4 premium-card flex items-center justify-center gap-3 text-[10px] font-black uppercase hover:${ecoBorder} transition-all ${ecoText} group`}>
-                      <Upload size={14} className="group-hover:animate-bounce"/> ACTUALIZAR CSV
-                    </button>
-                    <button onClick={() => downloadCSV(calculatedEntries, 'FuelMaster_Backup.csv')} className="w-full py-4 premium-card flex items-center justify-center gap-3 text-[10px] font-black uppercase hover:border-blue-500 transition-all text-blue-400">
-                      <FileText size={14}/> EXPORTAR CSV
-                    </button>
-                    <button onClick={() => exportToPDF(stats, calculatedEntries)} className="w-full py-4 premium-card flex items-center justify-center gap-3 text-[10px] font-black uppercase hover:border-emerald-500 transition-all text-emerald-400">
-                      <Download size={14}/> PDF REPORT
-                    </button>
-                    <button onClick={() => setShowBackup(true)} className="w-full py-4 premium-card flex items-center justify-center gap-3 text-[10px] font-black uppercase hover:border-amber-500 transition-all text-amber-500">
-                      <Mail size={14}/> BACKUP EMAIL
-                    </button>
-                    {/* NUEVO BOTÓN: REPORTE ANUAL */}
-                    <button onClick={() => setShowAnnualStats(true)} className="w-full py-4 premium-card flex items-center justify-center gap-3 text-[10px] font-black uppercase hover:border-violet-500 transition-all text-violet-500">
-                      <BarChart3 size={14}/> REPORTE ANUAL
-                    </button>
-                  </div>
                 </div>
               </div>
-            ) : (
+            )}
+
+            {/* VISTA 2: HISTORIAL (Tablas) */}
+            {view === 'history' && (
               <div className="premium-card overflow-hidden">
                 <table className="w-full text-left">
                   <thead className="bg-slate-900/50 text-[9px] font-black uppercase text-slate-500">
@@ -691,6 +677,64 @@ const App: React.FC = () => {
                 </table>
               </div>
             )}
+
+            {/* VISTA 3: HERRAMIENTAS (NUEVO PANEL DE CONTROL) */}
+            {view === 'tools' && (
+              <div className="max-w-4xl mx-auto animate-fade-in">
+                <div className="text-center mb-10">
+                  <h2 className="text-2xl font-black italic uppercase text-white mb-2">Panel de Gestión</h2>
+                  <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Importación, Exportación y Copias de Seguridad</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Tarjeta 1: Importar */}
+                  <button onClick={() => setShowImport(true)} className="group bg-slate-900/50 border border-white/5 hover:border-emerald-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
+                    <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                      <Upload size={24} />
+                    </div>
+                    <h3 className="text-lg font-black uppercase text-white mb-2">Importar Datos</h3>
+                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Carga un archivo CSV existente para actualizar tu historial de repostajes.</p>
+                  </button>
+
+                  {/* Tarjeta 2: Exportar */}
+                  <button onClick={() => downloadCSV(calculatedEntries, 'FuelMaster_Backup.csv')} className="group bg-slate-900/50 border border-white/5 hover:border-blue-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
+                    <div className="w-12 h-12 bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                      <FileText size={24} />
+                    </div>
+                    <h3 className="text-lg font-black uppercase text-white mb-2">Exportar CSV</h3>
+                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Descarga tus datos crudos en formato CSV para usarlos en Excel.</p>
+                  </button>
+
+                  {/* Tarjeta 3: PDF Report */}
+                  <button onClick={() => exportToPDF(stats, calculatedEntries, vehicleProfile, maintenance)} className="group bg-slate-900/50 border border-white/5 hover:border-emerald-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
+                    <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                      <Download size={24} />
+                    </div>
+                    <h3 className="text-lg font-black uppercase text-white mb-2">Reporte PDF Oficial</h3>
+                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Genera un documento profesional con estado del vehículo, mantenimiento e historial.</p>
+                  </button>
+
+                  {/* Tarjeta 4: Backup Email */}
+                  <button onClick={() => setShowBackup(true)} className="group bg-slate-900/50 border border-white/5 hover:border-amber-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
+                    <div className="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                      <Mail size={24} />
+                    </div>
+                    <h3 className="text-lg font-black uppercase text-white mb-2">Backup por Email</h3>
+                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Envía una copia de seguridad completa adjunta a tu correo electrónico.</p>
+                  </button>
+
+                  {/* Tarjeta 5: Reporte Anual */}
+                  <button onClick={() => setShowAnnualStats(true)} className="group bg-slate-900/50 border border-white/5 hover:border-violet-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl md:col-span-2">
+                    <div className="w-12 h-12 bg-violet-500/10 text-violet-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                      <BarChart3 size={24} />
+                    </div>
+                    <h3 className="text-lg font-black uppercase text-white mb-2">Analítica Anual</h3>
+                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Visualiza tu kilometraje desglosado por años y tu media histórica real.</p>
+                  </button>
+                </div>
+              </div>
+            )}
+
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center min-h-[50vh] premium-card p-10 sm:p-20 text-center">
@@ -708,11 +752,11 @@ const App: React.FC = () => {
         )}
       </main>
 
+      {/* MODALES FLOTANTES */}
       <button onClick={() => setShowNewEntry(true)} className={`fixed bottom-6 right-6 sm:bottom-10 sm:right-10 w-14 h-14 sm:w-16 sm:h-16 ${ecoBg} text-slate-950 rounded-2xl shadow-2xl flex items-center justify-center z-[70] hover:scale-110 active:scale-95 transition-all duration-1000 ${ecoShadow}`}>
         <Plus size={28} />
       </button>
 
-      {/* MODAL DE REPORTE ANUAL (NUEVO) */}
       {showAnnualStats && (
         <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6 sm:p-8 animate-fade-in">
           <div className="premium-card w-full max-w-2xl p-8 relative overflow-y-auto max-h-[90vh] shadow-2xl">
@@ -754,6 +798,7 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {/* Resto de modales (ShowHelp, ShowImport, ShowBackup, ShowNewEntry) se mantienen igual */}
       {showHelp && (
         <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6 sm:p-8 animate-fade-in">
           <div className="premium-card w-full max-w-2xl p-8 relative overflow-y-auto max-h-[90vh] shadow-2xl">
@@ -761,7 +806,6 @@ const App: React.FC = () => {
             <div className={`p-6 bg-${ecoColor}-500/5 rounded-3xl border ${ecoBorder}/10`}>
               <h3 className="text-2xl font-black italic uppercase text-white mb-8">Gestión de Perfil</h3>
               <form onSubmit={handleSaveVehicle} className="space-y-8">
-                {/* ... (Resto del formulario de perfil igual) ... */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="space-y-2">
                       <label className="text-[9px] font-black text-slate-500 uppercase">Matriculación Inicial</label>
