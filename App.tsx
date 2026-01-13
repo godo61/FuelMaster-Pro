@@ -3,17 +3,17 @@ import {
   Upload, Zap, Activity, Wrench, X, RefreshCw, Plus, 
   Euro, Navigation, Trash2, Fuel, TrendingUp, 
   Database, Lock, Download, LogOut, Smartphone, ShieldCheck, 
-  AlertCircle, Calendar, Sun, Moon, Mail, FileText, Globe, Settings, AlertTriangle, MapPin, Car, Info, BarChart3, Briefcase, Share2, MessageSquare
+  AlertCircle, Calendar, Sun, Moon, Mail, FileText, Globe, Settings, AlertTriangle, MapPin, Car, Info, BarChart3, Briefcase, Share2
 } from 'lucide-react';
-// Imports ajustados a la RAÍZ (sin src/)
+// Imports
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { FuelEntry, CalculatedEntry, SummaryStats, VehicleProfile, VehicleCategory } from './types';
 import { parseFuelCSV } from './utils/csvParser';
 import { calculateEntries, getSummaryStats, getDaysRemaining } from './utils/calculations';
 import { calculateNextITV } from './utils/itvLogic';
-// IMPORTACIONES DE EXPORTACIÓN (Incluye la nueva shareTextReport)
-import { exportToPDF, smartShareReport, shareTextReport } from './utils/pdfExport'; 
-import { downloadCSV, generateCSV, shareCSV } from './utils/csvExport';
+// Importamos SOLO lo necesario para el CSV y el PDF básico
+import { exportToPDF } from './utils/pdfExport'; 
+import { downloadCSV, shareCSV } from './utils/csvExport'; // Usamos shareCSV estilo Master Paleo
 import { translations } from './utils/translations';
 import StatCard from './components/StatCard';
 import FuelChart from './components/FuelChart';
@@ -66,13 +66,12 @@ const App: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Lógica de Eco-Dashboard Dinámico
   const getEcoColor = () => {
     if (!stats) return 'emerald';
     const cons = stats.avgConsumption;
-    if (cons < 4.8) return 'emerald'; // Excelente
-    if (cons <= 5.5) return 'amber';   // Medio
-    return 'orange';                  // Alto
+    if (cons < 4.8) return 'emerald';
+    if (cons <= 5.5) return 'amber';
+    return 'orange';
   };
 
   const ecoColor = getEcoColor();
@@ -184,30 +183,18 @@ const App: React.FC = () => {
     }
   }, [entries]);
 
-  // --- CÁLCULO DE KM ANUALES ---
   const annualStats = useMemo(() => {
     if (!calculatedEntries.length) return { years: [], avgKm: 0, maxYearKm: 1 };
-
     const yearsMap: Record<number, number> = {};
     const currentYear = new Date().getFullYear();
-    
     calculatedEntries.forEach(entry => {
       const [day, month, year] = entry.date.split('/').map(Number);
       if (year && !isNaN(year)) {
         yearsMap[year] = (yearsMap[year] || 0) + (entry.distancia || 0);
       }
     });
-
-    const years = Object.keys(yearsMap)
-      .map(Number)
-      .sort((a, b) => b - a)
-      .map(year => ({
-        year,
-        totalKm: yearsMap[year]
-      }));
-
+    const years = Object.keys(yearsMap).map(Number).sort((a, b) => b - a).map(year => ({ year, totalKm: yearsMap[year] }));
     const completedYears = years.filter(y => y.year < currentYear);
-
     let avgKm = 0;
     if (completedYears.length > 0) {
       const totalKmHistory = completedYears.reduce((acc, curr) => acc + curr.totalKm, 0);
@@ -215,9 +202,7 @@ const App: React.FC = () => {
     } else {
       avgKm = years.length > 0 ? years[0].totalKm : 0;
     }
-
     const maxYearKm = Math.max(...years.map(y => y.totalKm), 1); 
-
     return { years, avgKm, maxYearKm };
   }, [calculatedEntries]);
 
@@ -231,10 +216,8 @@ const App: React.FC = () => {
       lastServiceKm: Number(formData.get('lastServiceKm')) || undefined,
       lastServiceDate: formData.get('lastServiceDate') as string || undefined
     };
-
     setVehicleProfile(profile);
     localStorage.setItem(VEHICLE_KEY, JSON.stringify(profile));
-
     if (session?.user?.id && isSupabaseConfigured) {
       try {
         await supabase.from('vehicle_profiles').upsert({
@@ -247,19 +230,16 @@ const App: React.FC = () => {
         });
       } catch (err) { }
     }
-    
     setShowHelp(false);
   };
 
   const deleteEntry = async (id: string) => {
     if (!confirm(String(t.confirmDelete))) return;
-    
     if (session?.user?.id && isSupabaseConfigured) {
       try {
         await supabase.from('fuel_entries').delete().eq('id', id);
       } catch (err) { }
     }
-    
     setEntries(entries.filter(e => e.id !== id));
   };
 
@@ -276,25 +256,20 @@ const App: React.FC = () => {
 
   const getNextService = () => {
     if (!vehicleProfile?.lastServiceKm || !vehicleProfile?.lastServiceDate || !stats) return null;
-    
     const kmDrivenSinceService = Math.max(0, stats.lastOdometer - vehicleProfile.lastServiceKm);
     const rawKmRemaining = 15000 - kmDrivenSinceService;
     const kmRemaining = Math.min(15000, Math.max(0, rawKmRemaining));
     const kmPercent = Math.min((kmDrivenSinceService / 15000) * 100, 100);
-
     const lastDate = new Date(vehicleProfile.lastServiceDate);
     const nextDate = new Date(lastDate);
     nextDate.setFullYear(nextDate.getFullYear() + 1); 
-    
     const today = new Date();
     const totalTimeMs = nextDate.getTime() - lastDate.getTime();
     const elapsedTimeMs = today.getTime() - lastDate.getTime();
     const timePercent = Math.max(0, Math.min(100, (elapsedTimeMs / totalTimeMs) * 100));
-    
     const daysRemaining = getDaysRemaining(nextDate.toISOString());
     const isTimeLimit = timePercent > kmPercent;
     const servicePercent = Math.max(kmPercent, timePercent);
-    
     return {
       nextKm: vehicleProfile.lastServiceKm + 15000,
       nextDate,
@@ -347,7 +322,6 @@ const App: React.FC = () => {
     );
   }
 
-  // --- RENDERIZADO PRINCIPAL ---
   const itvDate = vehicleProfile ? calculateNextITV(vehicleProfile.registrationDate, vehicleProfile.category, vehicleProfile.lastItvDate) : null;
   const isItvValid = itvDate && !isNaN(itvDate.getTime());
   const itvDays = isItvValid ? getDaysRemaining(itvDate!.toISOString()) : 0;
@@ -368,19 +342,11 @@ const App: React.FC = () => {
 
   const tripFuelEst = stats ? (Number(tripKm) / 100) * stats.avgConsumption : 0;
   const tripCostEst = stats ? (Number(tripKm) / 100) * stats.avgCostPer100Km : 0;
-  
-  const bestTripConsumption = calculatedEntries.length > 0 
-    ? Math.min(...calculatedEntries.filter(e => e.consumption > 0).map(e => e.consumption)) 
-    : 0;
-  
-  const potentialSavings = stats && bestTripConsumption > 0 
-    ? ((stats.avgConsumption - bestTripConsumption) * (Number(tripKm) / 100)) * stats.avgPricePerLiter
-    : 0;
-
+  const bestTripConsumption = calculatedEntries.length > 0 ? Math.min(...calculatedEntries.filter(e => e.consumption > 0).map(e => e.consumption)) : 0;
+  const potentialSavings = stats && bestTripConsumption > 0 ? ((stats.avgConsumption - bestTripConsumption) * (Number(tripKm) / 100)) * stats.avgPricePerLiter : 0;
   const avgRefillLiters = stats && calculatedEntries.length > 0 ? stats.totalFuel / calculatedEntries.length : 0;
   const estimatedTypicalRange = stats && stats.avgConsumption > 0 ? (avgRefillLiters / stats.avgConsumption) * 100 : 0;
   const estimatedMaxPotentialRange = stats && stats.avgConsumption > 0 ? (43 / stats.avgConsumption) * 100 : 0;
-
   const carPosition = Math.min(Number(tripKm), 1000) / 1000 * 100;
 
   const trends = {
@@ -403,7 +369,6 @@ const App: React.FC = () => {
             </div>
             <h1 className="text-lg sm:text-xl font-black italic tracking-tighter uppercase leading-none text-white hidden xs:block">{String(t.appTitle)}</h1>
           </div>
-          
           <div className="flex items-center gap-2 sm:gap-4 nav-actions">
             <div className="flex bg-slate-800/20 p-1 rounded-xl">
               <button onClick={() => setLang(lang === 'es' ? 'en' : 'es')} className="p-2 text-slate-400 hover:text-white transition-all flex items-center gap-1">
@@ -414,7 +379,6 @@ const App: React.FC = () => {
                 {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
               </button>
             </div>
-
             <div className="bg-slate-800/20 p-1 rounded-xl flex">
               <button onClick={() => setView('dashboard')} className={`px-3 sm:px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all duration-500 ${view === 'dashboard' ? `${ecoBg} text-slate-950` : 'text-slate-500'}`}>{String(t.monitor)}</button>
               <button onClick={() => setView('history')} className={`px-3 sm:px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all duration-500 ${view === 'history' ? `${ecoBg} text-slate-950` : 'text-slate-500'}`}>{String(t.history)}</button>
@@ -422,7 +386,6 @@ const App: React.FC = () => {
                 <Briefcase size={12} /> HERRAMIENTAS
               </button>
             </div>
-            
             <button onClick={() => setShowHelp(true)} className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-slate-400 hover:text-white transition-all hover:bg-white/5 rounded-xl"><Settings size={18}/></button>
             <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center transition-all hover:bg-red-500 hover:text-white"><LogOut size={18} /></button>
           </div>
@@ -432,7 +395,6 @@ const App: React.FC = () => {
       <main className="max-w-7xl mx-auto px-6 py-12 animate-fade-in">
         {stats ? (
           <div className="space-y-10">
-            {/* LAS TARJETAS DE ESTADÍSTICAS SIEMPRE VISIBLES */}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-6">
               <StatCard label={String(t.consumption)} value={stats.avgConsumption.toFixed(2)} unit="L/100" icon={<Activity size={20}/>} color="bg-blue-500" trendData={trends.consumption} />
               <StatCard label={String(t.efficiency)} value={stats.avgKmPerLiter.toFixed(2)} unit="km/L" icon={<Zap size={20}/>} color="bg-emerald-500" trendData={trends.efficiency} />
@@ -443,7 +405,6 @@ const App: React.FC = () => {
               <StatCard label={String(t.odometer)} value={stats.lastOdometer.toLocaleString()} unit="km" icon={<Navigation size={20}/>} color="bg-slate-500" trendData={trends.odometer} />
             </div>
 
-            {/* VISTA 1: DASHBOARD (Monitor) */}
             {view === 'dashboard' && (
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
                 <div className="lg:col-span-3 space-y-10">
@@ -451,7 +412,6 @@ const App: React.FC = () => {
                   <div className="premium-card p-6 sm:p-10"><FuelChart data={calculatedEntries} type="efficiency" /></div>
                 </div>
                 <div className="space-y-6">
-                  {/* WIDGET AUTONOMÍA INTELIGENTE */}
                   <div className="premium-card p-6 border-l-4 border-indigo-500 flex flex-col gap-4">
                     <h3 className="text-[10px] font-black uppercase flex items-center gap-2 text-white">
                       <Fuel size={14} className="text-indigo-500" /> {String(t.theoreticalRange)}
@@ -462,14 +422,9 @@ const App: React.FC = () => {
                         <span className="text-4xl font-black font-mono-prec text-white group-hover:text-indigo-400 transition-colors">{estimatedTypicalRange.toFixed(0)}</span>
                         <span className="text-[10px] font-bold text-indigo-400">KM</span>
                       </div>
-                      
                       <div className="w-full h-2 bg-slate-900/50 rounded-full mt-5 overflow-hidden border border-white/5 relative">
-                        <div 
-                          className="h-full bg-gradient-to-r from-indigo-600 to-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.4)] transition-all duration-1000 ease-out" 
-                          style={{ width: `${Math.min((avgRefillLiters / 43) * 100, 100)}%` }}
-                        ></div>
+                        <div className="h-full bg-gradient-to-r from-indigo-600 to-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.4)] transition-all duration-1000 ease-out" style={{ width: `${Math.min((avgRefillLiters / 43) * 100, 100)}%` }}></div>
                       </div>
-                      
                       <div className="w-full grid grid-cols-2 mt-4 px-1 gap-4">
                         <div className="flex flex-col">
                            <span className="text-[7px] text-slate-500 uppercase font-black mb-1">Tu Repostaje Medio</span>
@@ -483,34 +438,21 @@ const App: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* CALCULADORA DE TRAYECTO */}
                   <div className={`premium-card p-6 border-l-4 ${ecoBorder} flex flex-col gap-4 transition-colors duration-1000`}>
                     <h3 className="text-[10px] font-black uppercase flex items-center gap-2 text-white">
                       <MapPin size={14} className={ecoText} /> {String(t.tripCalculator)}
                     </h3>
-                    
                     <div className="relative h-8 w-full bg-slate-900/50 rounded-lg border border-white/5 overflow-hidden flex items-center px-4">
                       <div className="absolute left-0 h-[1px] w-full border-t border-dashed border-slate-700/50"></div>
-                      <div 
-                        className="relative z-10 transition-all duration-500 ease-out"
-                        style={{ transform: `translateX(calc(${carPosition}% - 24px))` }}
-                      >
+                      <div className="relative z-10 transition-all duration-500 ease-out" style={{ transform: `translateX(calc(${carPosition}% - 24px))` }}>
                         <Car size={18} className={`${ecoText} drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]`} />
                       </div>
                     </div>
-
                     <div className="space-y-3">
                       <div className="relative">
-                        <input 
-                          type="number" 
-                          placeholder={String(t.tripDistance)}
-                          value={tripKm}
-                          onChange={(e) => setTripKm(e.target.value)}
-                          className={`w-full bg-slate-900 border border-white/5 rounded-xl py-3 px-4 text-xs font-bold text-white outline-none focus:border-${ecoColor}-500 transition-all font-mono-prec`}
-                        />
+                        <input type="number" placeholder={String(t.tripDistance)} value={tripKm} onChange={(e) => setTripKm(e.target.value)} className={`w-full bg-slate-900 border border-white/5 rounded-xl py-3 px-4 text-xs font-bold text-white outline-none focus:border-${ecoColor}-500 transition-all font-mono-prec`} />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-500">KM</span>
                       </div>
-                      
                       {tripKm && stats && (
                         <>
                           <div className="grid grid-cols-2 gap-2 animate-fade-in">
@@ -523,7 +465,6 @@ const App: React.FC = () => {
                               <p className="text-sm font-black text-white font-mono-prec">{tripCostEst.toFixed(2)} <span className="text-[8px] font-sans">€</span></p>
                             </div>
                           </div>
-
                           {showComparison && (
                             <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3 animate-fade-in overflow-hidden relative group">
                                 <div className={`absolute top-0 left-0 w-1 h-full ${ecoBg}`}></div>
@@ -540,11 +481,7 @@ const App: React.FC = () => {
                                 <p className="text-[7px] text-slate-500 font-bold uppercase italic leading-tight">Si conduces hoy como en tu mejor viaje, ahorrarás el equivalente a {(potentialSavings / stats.avgPricePerLiter).toFixed(1)} litros.</p>
                             </div>
                           )}
-
-                          <button 
-                            onClick={() => setShowComparison(!showComparison)}
-                            className={`w-full py-3 bg-${ecoColor}-500/10 hover:bg-${ecoColor}-500/20 ${ecoText} text-[8px] font-black uppercase rounded-lg border ${ecoBorder}/20 transition-all flex items-center justify-center gap-2`}
-                          >
+                          <button onClick={() => setShowComparison(!showComparison)} className={`w-full py-3 bg-${ecoColor}-500/10 hover:bg-${ecoColor}-500/20 ${ecoText} text-[8px] font-black uppercase rounded-lg border ${ecoBorder}/20 transition-all flex items-center justify-center gap-2`}>
                             <TrendingUp size={12} /> {showComparison ? "Ocultar comparativa" : "Comparar con mi mejor viaje"}
                           </button>
                         </>
@@ -552,12 +489,10 @@ const App: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* PERFIL Y MANTENIMIENTO */}
                   <div className="premium-card p-6 border-l-4 border-blue-500 flex flex-col gap-6">
                     <h3 className="text-[10px] font-black uppercase flex items-center gap-2 text-white">
                       <Settings size={14} className="text-blue-500" /> {String(t.vehicleProfile)}
                     </h3>
-                    
                     <div className="space-y-4">
                       {isItvValid && (
                         <div className={`p-4 rounded-xl border transition-all ${getItvBgClass(itvDays)}`}>
@@ -569,10 +504,8 @@ const App: React.FC = () => {
                            <p className="text-[8px] font-black uppercase text-slate-500">Vencimiento: {itvDate?.toLocaleDateString()}</p>
                         </div>
                       )}
-
                       {maintenance ? (
                         <div className={`p-4 rounded-xl border transition-all ${maintenance.isUrgent ? 'bg-orange-500/10 border-orange-500/20' : 'bg-blue-500/10 border-blue-500/20'}`}>
-                          
                           <div className="flex justify-between items-start mb-3">
                             <p className="text-[8px] font-bold text-slate-500 uppercase">Próxima Revisión</p>
                             <div className="text-right">
@@ -580,14 +513,9 @@ const App: React.FC = () => {
                                 <p className="text-[10px] font-black text-white">{maintenance.nextDate.toLocaleDateString()}</p>
                             </div>
                           </div>
-                          
                           <div className="w-full h-3 bg-slate-900/50 rounded-full mb-4 overflow-hidden border border-white/5 relative">
-                             <div 
-                                className={`h-full transition-all duration-1000 ease-out ${maintenance.isUrgent ? 'bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.4)]' : 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.4)]'}`}
-                                style={{ width: `${maintenance.servicePercent}%` }}
-                             ></div>
+                             <div className={`h-full transition-all duration-1000 ease-out ${maintenance.isUrgent ? 'bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.4)]' : 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.4)]'}`} style={{ width: `${maintenance.servicePercent}%` }}></div>
                           </div>
-
                           <div className="grid grid-cols-2 gap-3">
                             <div className={`p-2 rounded-lg border ${!maintenance.isTimeLimit ? 'bg-slate-800/50 border-white/10' : 'bg-slate-900/30 border-transparent'}`}>
                                 <p className="text-[7px] text-slate-500 uppercase font-bold mb-1">Distancia</p>
@@ -596,7 +524,6 @@ const App: React.FC = () => {
                                     <span className="text-[8px] font-sans text-slate-500 ml-1">KM</span>
                                 </p>
                             </div>
-
                             <div className={`p-2 rounded-lg border ${maintenance.isTimeLimit ? 'bg-slate-800/50 border-white/10' : 'bg-slate-900/30 border-transparent'}`}>
                                 <p className="text-[7px] text-slate-500 uppercase font-bold mb-1">Tiempo</p>
                                 <p className={`text-lg font-black font-mono-prec ${maintenance.isTimeLimit ? (maintenance.isUrgent ? 'text-orange-500' : 'text-blue-400') : 'text-slate-300'}`}>
@@ -605,22 +532,16 @@ const App: React.FC = () => {
                                 </p>
                             </div>
                           </div>
-                          
                           <p className="text-[8px] text-slate-500 uppercase font-black text-center mt-3">
                               {maintenance.servicePercent.toFixed(0)}% de vida útil consumida
                           </p>
-
                         </div>
                       ) : (
                         <div className="p-4 rounded-xl bg-slate-900 border border-white/5">
                            <p className="text-[8px] font-black text-slate-500 uppercase text-center">Configura tu mantenimiento en ajustes</p>
                         </div>
                       )}
-
-                      <button 
-                        onClick={() => setShowHelp(true)}
-                        className="w-full mt-2 py-3 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-[8px] font-black uppercase rounded-lg border border-blue-500/20 transition-all flex items-center justify-center gap-2"
-                      >
+                      <button onClick={() => setShowHelp(true)} className="w-full mt-2 py-3 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-[8px] font-black uppercase rounded-lg border border-blue-500/20 transition-all flex items-center justify-center gap-2">
                         <Settings size={12} /> Gestionar Perfil
                       </button>
                     </div>
@@ -629,7 +550,6 @@ const App: React.FC = () => {
               </div>
             )}
 
-            {/* VISTA 2: HISTORIAL (Tablas) */}
             {view === 'history' && (
               <div className="premium-card overflow-hidden">
                 <table className="w-full text-left">
@@ -652,16 +572,13 @@ const App: React.FC = () => {
               </div>
             )}
 
-            {/* VISTA 3: HERRAMIENTAS (NUEVO PANEL DE CONTROL) */}
             {view === 'tools' && (
               <div className="max-w-4xl mx-auto animate-fade-in">
                 <div className="text-center mb-10">
                   <h2 className="text-2xl font-black italic uppercase text-white mb-2">Panel de Gestión</h2>
                   <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Importación, Exportación y Copias de Seguridad</p>
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Tarjeta 1: Importar */}
                   <button onClick={() => setShowImport(true)} className="group bg-slate-900/50 border border-white/5 hover:border-emerald-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
                     <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                       <Upload size={24} />
@@ -669,8 +586,6 @@ const App: React.FC = () => {
                     <h3 className="text-lg font-black uppercase text-white mb-2">Importar Datos</h3>
                     <p className="text-xs text-slate-500 font-bold leading-relaxed">Carga un archivo CSV existente para actualizar tu historial de repostajes.</p>
                   </button>
-
-                  {/* Tarjeta 2: Exportar CSV (Descarga) */}
                   <button onClick={() => downloadCSV(calculatedEntries, 'FuelMaster_Backup.csv')} className="group bg-slate-900/50 border border-white/5 hover:border-blue-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
                     <div className="w-12 h-12 bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                       <FileText size={24} />
@@ -678,35 +593,20 @@ const App: React.FC = () => {
                     <h3 className="text-lg font-black uppercase text-white mb-2">Exportar CSV</h3>
                     <p className="text-xs text-slate-500 font-bold leading-relaxed">Descarga tus datos crudos en formato CSV para usarlos en Excel.</p>
                   </button>
-                  
-                  {/* Tarjeta 3: Informe PDF (Botón 1 - Para móviles nuevos) */}
-                  <button onClick={() => smartShareReport(stats, calculatedEntries, vehicleProfile, maintenance)} className="group bg-slate-900/50 border border-white/5 hover:border-violet-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
-                    <div className="w-12 h-12 bg-violet-500/10 text-violet-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                      <Share2 size={24} />
+                  <button onClick={() => exportToPDF(stats, calculatedEntries, vehicleProfile, maintenance)} className="group bg-slate-900/50 border border-white/5 hover:border-emerald-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
+                    <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                      <Download size={24} />
                     </div>
-                    <h3 className="text-lg font-black uppercase text-white mb-2">Informe PDF</h3>
-                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Genera y comparte un PDF oficial (Recomendado para móviles modernos).</p>
+                    <h3 className="text-lg font-black uppercase text-white mb-2">Descargar Reporte PDF</h3>
+                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Guarda el informe oficial en tu dispositivo (Modo Seguro).</p>
                   </button>
-
-                  {/* Tarjeta 4: Informe Texto (Botón 2 - Fallback Seguro) */}
-                  <button onClick={() => shareTextReport(stats, vehicleProfile, maintenance)} className="group bg-slate-900/50 border border-white/5 hover:border-green-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
-                    <div className="w-12 h-12 bg-green-500/10 text-green-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                      <MessageSquare size={24} />
-                    </div>
-                    <h3 className="text-lg font-black uppercase text-white mb-2">Informe WhatsApp</h3>
-                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Envía un resumen rápido en texto. 100% Seguro para cualquier móvil.</p>
-                  </button>
-
-                  {/* Tarjeta 5: Backup Email (Ahora usa shareCSV con text/plain) */}
                   <button onClick={() => shareCSV(calculatedEntries)} className="group bg-slate-900/50 border border-white/5 hover:border-amber-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
                     <div className="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                       <Mail size={24} />
                     </div>
                     <h3 className="text-lg font-black uppercase text-white mb-2">Backup por Email</h3>
-                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Envía copia de seguridad. (Usa modo seguro de texto plano).</p>
+                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Abre tu app de correo favorita (Gmail, Outlook) y adjunta el archivo automáticamente.</p>
                   </button>
-
-                  {/* Tarjeta 6: Analítica Anual */}
                   <button onClick={() => setShowAnnualStats(true)} className="group bg-slate-900/50 border border-white/5 hover:border-pink-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
                     <div className="w-12 h-12 bg-pink-500/10 text-pink-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                       <BarChart3 size={24} />
@@ -717,7 +617,6 @@ const App: React.FC = () => {
                 </div>
               </div>
             )}
-
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center min-h-[50vh] premium-card p-10 sm:p-20 text-center">
@@ -744,7 +643,6 @@ const App: React.FC = () => {
         <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6 sm:p-8 animate-fade-in">
           <div className="premium-card w-full max-w-2xl p-8 relative overflow-y-auto max-h-[90vh] shadow-2xl">
             <button onClick={() => setShowAnnualStats(false)} className="absolute top-6 right-6 text-slate-500 hover:text-white transition-all"><X size={32}/></button>
-            
             <div className="text-center mb-10">
               <div className="w-16 h-16 bg-pink-500/20 text-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-pink-500/20">
                 <BarChart3 size={32} />
@@ -752,7 +650,6 @@ const App: React.FC = () => {
               <h3 className="text-2xl font-black italic uppercase text-white">Reporte Anual</h3>
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-2">Desglose de kilometraje por año</p>
             </div>
-
             <div className="bg-slate-900/50 rounded-2xl border border-white/5 p-6 mb-8 text-center">
                <p className="text-[9px] font-black text-slate-500 uppercase mb-2">Media Anual Histórica</p>
                <p className="text-4xl font-black text-white font-mono-prec">
@@ -760,7 +657,6 @@ const App: React.FC = () => {
                  <span className="text-sm font-sans text-slate-500 ml-2">KM</span>
                </p>
             </div>
-
             <div className="space-y-4">
               {annualStats.years.map(({ year, totalKm }) => (
                 <div key={year} className="group">
@@ -769,10 +665,7 @@ const App: React.FC = () => {
                     <span className="text-sm font-bold text-white font-mono-prec">{totalKm.toLocaleString()} <span className="text-[9px] text-slate-500">KM</span></span>
                   </div>
                   <div className="w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-white/5 relative">
-                    <div 
-                      className="h-full bg-pink-500 shadow-[0_0_10px_rgba(236,72,153,0.4)] group-hover:bg-pink-400 transition-all duration-500"
-                      style={{ width: `${(totalKm / annualStats.maxYearKm) * 100}%` }}
-                    />
+                    <div className="h-full bg-pink-500 shadow-[0_0_10px_rgba(236,72,153,0.4)] group-hover:bg-pink-400 transition-all duration-500" style={{ width: `${(totalKm / annualStats.maxYearKm) * 100}%` }}></div>
                   </div>
                 </div>
               ))}
@@ -781,7 +674,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Resto de modales se mantienen igual */}
       {showHelp && (
         <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6 sm:p-8 animate-fade-in">
           <div className="premium-card w-full max-w-2xl p-8 relative overflow-y-auto max-h-[90vh] shadow-2xl">
@@ -789,7 +681,6 @@ const App: React.FC = () => {
             <div className={`p-6 bg-${ecoColor}-500/5 rounded-3xl border ${ecoBorder}/10`}>
               <h3 className="text-2xl font-black italic uppercase text-white mb-8">Gestión de Perfil</h3>
               <form onSubmit={handleSaveVehicle} className="space-y-8">
-                {/* Formulario de perfil igual que antes */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="space-y-2">
                       <label className="text-[9px] font-black text-slate-500 uppercase">Matriculación Inicial</label>
@@ -800,7 +691,6 @@ const App: React.FC = () => {
                       <input name="lastItv" type="date" defaultValue={vehicleProfile?.lastItvDate} className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500" />
                    </div>
                 </div>
-                
                 <div className="border-t border-white/5 pt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="space-y-2">
                       <label className="text-[9px] font-black text-blue-500 uppercase">Km de Última Revisión</label>
@@ -811,7 +701,6 @@ const App: React.FC = () => {
                       <input name="lastServiceDate" type="date" defaultValue={vehicleProfile?.lastServiceDate} className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-blue-500" />
                    </div>
                 </div>
-
                 <div className="space-y-2">
                    <label className="text-[9px] font-black text-slate-500 uppercase">Tipo de Vehículo</label>
                    <select name="category" defaultValue={vehicleProfile?.category || 'turismo'} className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-emerald-500 appearance-none">
@@ -820,10 +709,8 @@ const App: React.FC = () => {
                      <option value="motocicleta">Motocicleta</option>
                    </select>
                 </div>
-                
                 <button type="submit" className={`w-full py-5 ${ecoBg} text-slate-950 rounded-xl font-black uppercase text-xs tracking-[0.2em] shadow-lg ${ecoShadow} hover:scale-[1.02] transition-all duration-1000`}>Sincronizar Perfil</button>
               </form>
-
               <div className="mt-12 pt-8 border-t border-red-500/20 text-center">
                  <button onClick={handleClearAllData} className="text-red-500 font-black uppercase text-[10px] tracking-widest hover:text-red-400 transition-all">
                    Borrar base de datos local
