@@ -1,3 +1,4 @@
+
 import { CalculatedEntry } from '../types';
 
 // Genera el texto CSV
