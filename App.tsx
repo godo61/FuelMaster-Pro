@@ -11,10 +11,9 @@ import { FuelEntry, CalculatedEntry, SummaryStats, VehicleProfile, VehicleCatego
 import { parseFuelCSV } from './utils/csvParser';
 import { calculateEntries, getSummaryStats, getDaysRemaining } from './utils/calculations';
 import { calculateNextITV } from './utils/itvLogic';
-// --- IMPORTACIONES CORREGIDAS ---
+// IMPORTACIONES CORREGIDAS
 import { exportToPDF, smartShareReport } from './utils/pdfExport'; 
-import { downloadCSV, generateCSV, shareCSV } from './utils/csvExport';
-// --------------------------------
+import { downloadCSV, generateCSV, shareCSV } from './utils/csvExport'; // Quitamos sendBackupViaEmail, usamos shareCSV
 import { translations } from './utils/translations';
 import StatCard from './components/StatCard';
 import FuelChart from './components/FuelChart';
@@ -56,7 +55,6 @@ const App: React.FC = () => {
   const [showImport, setShowImport] = useState(false);
   const [showNewEntry, setShowNewEntry] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  // Eliminamos showBackup porque ahora usamos shareCSV directo
   const [showAnnualStats, setShowAnnualStats] = useState(false);
 
   const [newEntryForm, setNewEntryForm] = useState({
@@ -699,13 +697,14 @@ const App: React.FC = () => {
                     <p className="text-xs text-slate-500 font-bold leading-relaxed">Envía PDF si es compatible, o un resumen de texto para WhatsApp si el móvil es antiguo.</p>
                   </button>
 
-                  {/* Tarjeta 5: Backup CSV Directo (Lógica Master Paleo) */}
+                  {/* Tarjeta 5: Backup Email (AHORA SÍ: MODO NATIVO) */}
+                  {/* Cambio clave: Aquí usamos shareCSV en lugar de sendBackupViaEmail */}
                   <button onClick={() => shareCSV(calculatedEntries)} className="group bg-slate-900/50 border border-white/5 hover:border-amber-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
                     <div className="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                       <Mail size={24} />
                     </div>
-                    <h3 className="text-lg font-black uppercase text-white mb-2">Backup CSV (Email)</h3>
-                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Copia de seguridad en archivo adjunto (Compatible con móviles antiguos).</p>
+                    <h3 className="text-lg font-black uppercase text-white mb-2">Backup por Email</h3>
+                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Abre tu app de correo favorita (Gmail, Outlook) y adjunta el archivo automáticamente.</p>
                   </button>
 
                   {/* Tarjeta 6: Analítica Anual */}
@@ -791,6 +790,7 @@ const App: React.FC = () => {
             <div className={`p-6 bg-${ecoColor}-500/5 rounded-3xl border ${ecoBorder}/10`}>
               <h3 className="text-2xl font-black italic uppercase text-white mb-8">Gestión de Perfil</h3>
               <form onSubmit={handleSaveVehicle} className="space-y-8">
+                {/* Formulario de perfil igual que antes */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="space-y-2">
                       <label className="text-[9px] font-black text-slate-500 uppercase">Matriculación Inicial</label>

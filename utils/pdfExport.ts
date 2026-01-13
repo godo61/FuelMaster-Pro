@@ -11,26 +11,23 @@ interface MaintenanceData {
   isUrgent: boolean;
 }
 
-// --- 1. GENERADOR DE TEXTO WHATSAPP (FALLBACK) ---
+// --- GENERADOR DE TEXTO (MARKDOWN PARA WHATSAPP) ---
 const generateMarkdownReport = (
   stats: SummaryStats, 
   profile: VehicleProfile | null, 
   maintenance: MaintenanceData | null
 ) => {
   const date = new Date().toLocaleDateString('es-ES');
-  
   let itvTxt = "No configurada";
   if (profile) {
      const itvDate = calculateNextITV(profile.registrationDate, profile.category, profile.lastItvDate);
      if (itvDate) itvTxt = itvDate.toLocaleDateString('es-ES');
   }
-
   let mantTxt = "No configurado";
   if (maintenance) {
      mantTxt = `${maintenance.nextDate.toLocaleDateString('es-ES')} (o en ${maintenance.kmRemaining} km)`;
   }
 
-  // Formato Markdown para WhatsApp (*negrita*, _cursiva_)
   return `
 🚗 *INFORME FUELMASTER PRO* 🚗
 📅 Fecha: ${date}
@@ -49,7 +46,7 @@ _Generado por FuelMaster Pro_
   `.trim();
 };
 
-// --- 2. GENERADOR PDF (VISUAL) ---
+// --- GENERADOR PDF INTERNO ---
 const generatePDFDoc = (
   stats: SummaryStats, 
   entries: CalculatedEntry[], 
@@ -58,33 +55,27 @@ const generatePDFDoc = (
 ) => {
   const doc = new jsPDF() as any;
   const pageWidth = doc.internal.pageSize.getWidth();
-  // const pageHeight = doc.internal.pageSize.getHeight(); // No se usa por ahora
 
   // HEADER
   doc.setFillColor(16, 185, 129); // Emerald
   doc.rect(0, 0, pageWidth, 45, 'F');
-  
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(24);
   doc.setFont('helvetica', 'bold');
   doc.text('FUELMASTER PRO', 15, 20);
-  
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.text('ANALYTICS & MAINTENANCE REPORT', 15, 28);
-  
   doc.setFontSize(9);
   doc.text(`Fecha: ${new Date().toLocaleDateString('es-ES')}`, pageWidth - 15, 20, { align: 'right' });
 
   // DATOS
   let nextItvString = 'No registrada';
   let nextServiceString = 'No configurado';
-
   if (profile) {
     const itvDate = calculateNextITV(profile.registrationDate, profile.category, profile.lastItvDate);
     if (itvDate) nextItvString = itvDate.toLocaleDateString('es-ES');
   }
-
   if (maintenance) {
     nextServiceString = `${maintenance.nextDate.toLocaleDateString('es-ES')} (${maintenance.kmRemaining.toLocaleString('es-ES')} km rest.)`;
   }
@@ -143,26 +134,14 @@ const generatePDFDoc = (
   return doc;
 };
 
-// --- 3. EXPORTAR SIMPLE (DESCARGA) ---
-export const exportToPDF = (
-  stats: SummaryStats, 
-  entries: CalculatedEntry[], 
-  profile: VehicleProfile | null, 
-  maintenance: MaintenanceData | null
-) => {
+// --- EXPORTAR SIMPLE ---
+export const exportToPDF = (stats: SummaryStats, entries: CalculatedEntry[], profile: VehicleProfile | null, maintenance: MaintenanceData | null) => {
   const doc = generatePDFDoc(stats, entries, profile, maintenance);
   doc.save(`FuelMaster_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
 };
 
-// --- 4. SMART SHARE (LÓGICA HÍBRIDA) ---
-// ESTA ES LA FUNCIÓN QUE FALTABA Y QUE APP.TSX ESTÁ BUSCANDO
-export const smartShareReport = async (
-  stats: SummaryStats, 
-  entries: CalculatedEntry[], 
-  profile: VehicleProfile | null, 
-  maintenance: MaintenanceData | null
-) => {
-  // INTENTO 1: PDF (Móvil moderno)
+// --- SMART SHARE EXPORTADO CORRECTAMENTE ---
+export const smartShareReport = async (stats: SummaryStats, entries: CalculatedEntry[], profile: VehicleProfile | null, maintenance: MaintenanceData | null) => {
   try {
     const doc = generatePDFDoc(stats, entries, profile, maintenance);
     const blob = doc.output('blob');
@@ -170,26 +149,16 @@ export const smartShareReport = async (
     const file = new File([blob], fileName, { type: 'application/pdf' });
 
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({
-        files: [file] // Sin texto, solo archivo para evitar bugs
-      });
-      return; // Éxito
+      await navigator.share({ files: [file] });
+      return;
     }
-    // Si no soporta archivos, lanzamos error para ir al catch
     throw new Error("No soporta compartir archivos");
-
   } catch (pdfError) {
     console.log("Fallo PDF, intentando modo Texto...");
-    
-    // INTENTO 2: TEXTO MARKDOWN (Móvil antiguo)
     try {
         const textReport = generateMarkdownReport(stats, profile, maintenance);
-        await navigator.share({
-            title: 'Informe FuelMaster',
-            text: textReport
-        });
+        await navigator.share({ title: 'Informe FuelMaster', text: textReport });
     } catch (textError) {
-        // ULTIMO RECURSO: Descargar PDF
         alert("No se pudo compartir. Descargando PDF...");
         const doc = generatePDFDoc(stats, entries, profile, maintenance);
         doc.save(`FuelMaster_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
