@@ -58,7 +58,7 @@ const generatePDFDoc = (
 ) => {
   const doc = new jsPDF() as any;
   const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
+  // const pageHeight = doc.internal.pageSize.getHeight(); // No se usa por ahora
 
   // HEADER
   doc.setFillColor(16, 185, 129); // Emerald
@@ -155,6 +155,7 @@ export const exportToPDF = (
 };
 
 // --- 4. SMART SHARE (LÓGICA HÍBRIDA) ---
+// ESTA ES LA FUNCIÓN QUE FALTABA Y QUE APP.TSX ESTÁ BUSCANDO
 export const smartShareReport = async (
   stats: SummaryStats, 
   entries: CalculatedEntry[], 
