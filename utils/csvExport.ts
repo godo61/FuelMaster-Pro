@@ -18,7 +18,7 @@ export const generateCSV = (entries: CalculatedEntry[]): string => {
   return [headers.join(','), ...rows].join('\n');
 };
 
-// 2. Descarga directa (Funciona en PC y la mayoría de móviles)
+// 2. Descarga directa (Fallback)
 export const downloadCSV = (entries: CalculatedEntry[], filename: string) => {
   const csvContent = generateCSV(entries);
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -31,24 +31,20 @@ export const downloadCSV = (entries: CalculatedEntry[], filename: string) => {
   document.body.removeChild(link);
 };
 
-// 3. BACKUP EMAIL SEGURO (Método Texto en Cuerpo - ANTI CRASH)
-export const sendBackupViaEmail = (entries: CalculatedEntry[]) => {
-  const csvContent = generateCSV(entries);
-  const subject = encodeURIComponent(`Backup FuelMaster - ${new Date().toLocaleDateString('es-ES')}`);
-  const body = encodeURIComponent(`Aquí tienes tus datos de FuelMaster Pro.\n\nCopia el texto de abajo y guárdalo en un archivo .csv:\n\n${csvContent}`);
-  window.location.href = `mailto:?subject=${subject}&body=${body}`;
-};
-
-// 4. SHARE NATIVO (Solo para móviles nuevos)
+// 3. SHARE EXACTO MASTER PALEO (Sin texto en el cuerpo)
 export const shareCSV = async (entries: CalculatedEntry[]) => {
   const csvContent = generateCSV(entries);
-  const fileName = `FuelMaster_Backup_${new Date().toISOString().split('T')[0]}.csv`;
+  
+  // Nombre simple y estático para evitar problemas de caracteres
+  const fileName = "fuelmaster_backup.csv";
   const file = new File([csvContent], fileName, { type: 'text/csv' });
 
+  // ¡OJO AQUÍ! Solo 'title' y 'files'. Nada de 'text'.
+  // Esto obliga al móvil a tratarlo como un archivo puro.
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
       await navigator.share({
-        title: 'FuelMaster Backup CSV',
+        title: 'FuelMaster Backup',
         files: [file]
       });
     } catch (err) {

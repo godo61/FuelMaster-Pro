@@ -11,7 +11,7 @@ interface MaintenanceData {
   isUrgent: boolean;
 }
 
-// --- GENERADOR DE TEXTO (MARKDOWN PARA WHATSAPP) ---
+// --- GENERADOR DE TEXTO (SOLO SI FALLA EL PDF) ---
 const generateMarkdownReport = (
   stats: SummaryStats, 
   profile: VehicleProfile | null, 
@@ -134,34 +134,48 @@ const generatePDFDoc = (
   return doc;
 };
 
-// --- EXPORTAR SIMPLE ---
+// --- EXPORTAR SIMPLE (DESCARGA) ---
 export const exportToPDF = (stats: SummaryStats, entries: CalculatedEntry[], profile: VehicleProfile | null, maintenance: MaintenanceData | null) => {
   const doc = generatePDFDoc(stats, entries, profile, maintenance);
-  doc.save(`FuelMaster_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
+  doc.save('fuelmaster_report.pdf');
 };
 
-// --- SMART SHARE EXPORTADO CORRECTAMENTE ---
+// --- SMART SHARE (DEPURADO) ---
 export const smartShareReport = async (stats: SummaryStats, entries: CalculatedEntry[], profile: VehicleProfile | null, maintenance: MaintenanceData | null) => {
   try {
     const doc = generatePDFDoc(stats, entries, profile, maintenance);
     const blob = doc.output('blob');
-    const fileName = `FuelMaster_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
+    
+    // Nombre simple para máxima compatibilidad
+    const fileName = "fuelmaster_report.pdf";
     const file = new File([blob], fileName, { type: 'application/pdf' });
 
+    // SOLO Title y Files. Sin texto. Esto es clave.
+    const shareData = {
+        title: 'Informe FuelMaster',
+        files: [file]
+    };
+
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file] });
+      await navigator.share(shareData);
       return;
     }
     throw new Error("No soporta compartir archivos");
   } catch (pdfError) {
-    console.log("Fallo PDF, intentando modo Texto...");
+    console.log("Fallo PDF, intentando modo Texto...", pdfError);
+    
+    // Si falla el archivo, entonces SÍ mandamos texto (Markdown)
     try {
         const textReport = generateMarkdownReport(stats, profile, maintenance);
-        await navigator.share({ title: 'Informe FuelMaster', text: textReport });
+        await navigator.share({
+            title: 'Informe FuelMaster',
+            text: textReport
+        });
     } catch (textError) {
+        // Fallback final: Descargar
         alert("No se pudo compartir. Descargando PDF...");
         const doc = generatePDFDoc(stats, entries, profile, maintenance);
-        doc.save(`FuelMaster_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
+        doc.save('fuelmaster_report.pdf');
     }
   }
 };
