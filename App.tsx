@@ -3,7 +3,7 @@ import {
   Upload, Zap, Activity, Wrench, X, RefreshCw, Plus, 
   Euro, Navigation, Trash2, Fuel, TrendingUp, 
   Database, Lock, Download, LogOut, Smartphone, ShieldCheck, 
-  AlertCircle, Calendar, Sun, Moon, Mail, FileText, Globe, Settings, AlertTriangle, MapPin, Car, Info, BarChart3, Briefcase, Share2
+  AlertCircle, Calendar, Sun, Moon, Mail, FileText, Globe, Settings, AlertTriangle, MapPin, Car, Info, BarChart3, Briefcase, Share2, MessageSquare
 } from 'lucide-react';
 // Imports ajustados a la RAÍZ (sin src/)
 import { supabase, isSupabaseConfigured } from './lib/supabase';
@@ -11,9 +11,9 @@ import { FuelEntry, CalculatedEntry, SummaryStats, VehicleProfile, VehicleCatego
 import { parseFuelCSV } from './utils/csvParser';
 import { calculateEntries, getSummaryStats, getDaysRemaining } from './utils/calculations';
 import { calculateNextITV } from './utils/itvLogic';
-// IMPORTACIONES CORREGIDAS
-import { exportToPDF, smartShareReport } from './utils/pdfExport'; 
-import { downloadCSV, generateCSV, shareCSV } from './utils/csvExport'; // Quitamos sendBackupViaEmail, usamos shareCSV
+// IMPORTACIONES DE EXPORTACIÓN (Incluye la nueva shareTextReport)
+import { exportToPDF, smartShareReport, shareTextReport } from './utils/pdfExport'; 
+import { downloadCSV, generateCSV, shareCSV } from './utils/csvExport';
 import { translations } from './utils/translations';
 import StatCard from './components/StatCard';
 import FuelChart from './components/FuelChart';
@@ -670,7 +670,7 @@ const App: React.FC = () => {
                     <p className="text-xs text-slate-500 font-bold leading-relaxed">Carga un archivo CSV existente para actualizar tu historial de repostajes.</p>
                   </button>
 
-                  {/* Tarjeta 2: Exportar CSV */}
+                  {/* Tarjeta 2: Exportar CSV (Descarga) */}
                   <button onClick={() => downloadCSV(calculatedEntries, 'FuelMaster_Backup.csv')} className="group bg-slate-900/50 border border-white/5 hover:border-blue-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
                     <div className="w-12 h-12 bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                       <FileText size={24} />
@@ -678,33 +678,32 @@ const App: React.FC = () => {
                     <h3 className="text-lg font-black uppercase text-white mb-2">Exportar CSV</h3>
                     <p className="text-xs text-slate-500 font-bold leading-relaxed">Descarga tus datos crudos en formato CSV para usarlos en Excel.</p>
                   </button>
-
-                  {/* Tarjeta 3: Descargar PDF */}
-                  <button onClick={() => exportToPDF(stats, calculatedEntries, vehicleProfile, maintenance)} className="group bg-slate-900/50 border border-white/5 hover:border-emerald-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
-                    <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                      <Download size={24} />
-                    </div>
-                    <h3 className="text-lg font-black uppercase text-white mb-2">Descargar Reporte PDF</h3>
-                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Guarda el informe oficial en tu dispositivo (Modo Seguro).</p>
-                  </button>
                   
-                  {/* Tarjeta 4: Compartir Informe Inteligente */}
+                  {/* Tarjeta 3: Informe PDF (Botón 1 - Para móviles nuevos) */}
                   <button onClick={() => smartShareReport(stats, calculatedEntries, vehicleProfile, maintenance)} className="group bg-slate-900/50 border border-white/5 hover:border-violet-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
                     <div className="w-12 h-12 bg-violet-500/10 text-violet-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                       <Share2 size={24} />
                     </div>
-                    <h3 className="text-lg font-black uppercase text-white mb-2">Compartir Informe</h3>
-                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Envía PDF si es compatible, o un resumen de texto para WhatsApp si el móvil es antiguo.</p>
+                    <h3 className="text-lg font-black uppercase text-white mb-2">Informe PDF</h3>
+                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Genera y comparte un PDF oficial (Recomendado para móviles modernos).</p>
                   </button>
 
-                  {/* Tarjeta 5: Backup Email (AHORA SÍ: MODO NATIVO) */}
-                  {/* Cambio clave: Aquí usamos shareCSV en lugar de sendBackupViaEmail */}
+                  {/* Tarjeta 4: Informe Texto (Botón 2 - Fallback Seguro) */}
+                  <button onClick={() => shareTextReport(stats, vehicleProfile, maintenance)} className="group bg-slate-900/50 border border-white/5 hover:border-green-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
+                    <div className="w-12 h-12 bg-green-500/10 text-green-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                      <MessageSquare size={24} />
+                    </div>
+                    <h3 className="text-lg font-black uppercase text-white mb-2">Informe WhatsApp</h3>
+                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Envía un resumen rápido en texto. 100% Seguro para cualquier móvil.</p>
+                  </button>
+
+                  {/* Tarjeta 5: Backup Email (Ahora usa shareCSV con text/plain) */}
                   <button onClick={() => shareCSV(calculatedEntries)} className="group bg-slate-900/50 border border-white/5 hover:border-amber-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
                     <div className="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                       <Mail size={24} />
                     </div>
                     <h3 className="text-lg font-black uppercase text-white mb-2">Backup por Email</h3>
-                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Abre tu app de correo favorita (Gmail, Outlook) y adjunta el archivo automáticamente.</p>
+                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Envía copia de seguridad. (Usa modo seguro de texto plano).</p>
                   </button>
 
                   {/* Tarjeta 6: Analítica Anual */}

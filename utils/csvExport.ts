@@ -18,7 +18,7 @@ export const generateCSV = (entries: CalculatedEntry[]): string => {
   return [headers.join(','), ...rows].join('\n');
 };
 
-// 2. Descarga directa (Fallback)
+// 2. Descarga directa
 export const downloadCSV = (entries: CalculatedEntry[], filename: string) => {
   const csvContent = generateCSV(entries);
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -31,18 +31,19 @@ export const downloadCSV = (entries: CalculatedEntry[], filename: string) => {
   document.body.removeChild(link);
 };
 
-// 3. SHARE EXACTO MASTER PALEO (Sin texto en el cuerpo)
+// 3. SHARE MODIFICADO (Truco anti-crash)
 export const shareCSV = async (entries: CalculatedEntry[]) => {
   const csvContent = generateCSV(entries);
-  
-  // Nombre simple y estático para evitar problemas de caracteres
   const fileName = "fuelmaster_backup.csv";
-  const file = new File([csvContent], fileName, { type: 'text/csv' });
+  
+  // TRUCO: Usamos 'text/plain' en lugar de 'text/csv'.
+  // Esto hace que Android trate el archivo de forma más ligera y evita crasheos en móviles viejos.
+  // La extensión .csv se mantiene, así que Excel lo abrirá bien igual.
+  const file = new File([csvContent], fileName, { type: 'text/plain' });
 
-  // ¡OJO AQUÍ! Solo 'title' y 'files'. Nada de 'text'.
-  // Esto obliga al móvil a tratarlo como un archivo puro.
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
+      // Sin 'text' en el payload, igual que Master Paleo
       await navigator.share({
         title: 'FuelMaster Backup',
         files: [file]
