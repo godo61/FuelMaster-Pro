@@ -11,8 +11,10 @@ import { FuelEntry, CalculatedEntry, SummaryStats, VehicleProfile, VehicleCatego
 import { parseFuelCSV } from './utils/csvParser';
 import { calculateEntries, getSummaryStats, getDaysRemaining } from './utils/calculations';
 import { calculateNextITV } from './utils/itvLogic';
-import { exportToPDF, sharePDF } from './utils/pdfExport'; 
-import { downloadCSV, generateCSV } from './utils/csvExport';
+// --- IMPORTACIONES CORREGIDAS ---
+import { exportToPDF, smartShareReport } from './utils/pdfExport'; 
+import { downloadCSV, generateCSV, shareCSV } from './utils/csvExport';
+// --------------------------------
 import { translations } from './utils/translations';
 import StatCard from './components/StatCard';
 import FuelChart from './components/FuelChart';
@@ -54,7 +56,7 @@ const App: React.FC = () => {
   const [showImport, setShowImport] = useState(false);
   const [showNewEntry, setShowNewEntry] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [showBackup, setShowBackup] = useState(false);
+  // Eliminamos showBackup porque ahora usamos shareCSV directo
   const [showAnnualStats, setShowAnnualStats] = useState(false);
 
   const [newEntryForm, setNewEntryForm] = useState({
@@ -261,43 +263,6 @@ const App: React.FC = () => {
     }
     
     setEntries(entries.filter(e => e.id !== id));
-  };
-
-  // --- FUNCIÓN BACKUP EMAIL ROBUSTA ---
-  const handleBackupEmail = async (email: string) => {
-    // 1. Generar contenido
-    const csvContent = generateCSV(calculatedEntries);
-    const fileName = `FuelMaster_Backup_${new Date().toISOString().split('T')[0]}.csv`;
-    
-    // 2. Crear archivo con tipo MIME explícito
-    const file = new File([csvContent], fileName, { type: 'text/csv' });
-
-    // 3. Estrategia de Compartir
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({
-          title: 'FuelMaster Backup',
-          text: 'Copia de seguridad adjunta (CSV).',
-          files: [file]
-        });
-        setShowBackup(false);
-        return; // Éxito
-      } catch (err) {
-        console.log("Error al compartir, intentando método fallback");
-      }
-    }
-
-    // 4. Fallback (Método antiguo mailto)
-    const subject = `FuelMaster Pro Backup - ${new Date().toLocaleDateString()}`;
-    const body = `Hola,\n\nTu dispositivo no pudo adjuntar el archivo.\nAquí tienes los datos en bruto para copiar y pegar:\n\n${csvContent}`;
-    
-    if (email) {
-       window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    } else {
-       alert("No se pudo abrir el menú de compartir. Por favor introduce un email.");
-    }
-    
-    setShowBackup(false);
   };
 
   const handleClearAllData = () => {
@@ -721,26 +686,26 @@ const App: React.FC = () => {
                     <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                       <Download size={24} />
                     </div>
-                    <h3 className="text-lg font-black uppercase text-white mb-2">Descargar Reporte</h3>
-                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Guarda el informe oficial en tu dispositivo para consulta rápida.</p>
+                    <h3 className="text-lg font-black uppercase text-white mb-2">Descargar Reporte PDF</h3>
+                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Guarda el informe oficial en tu dispositivo (Modo Seguro).</p>
                   </button>
                   
-                  {/* Tarjeta 4: Compartir PDF (NUEVO) */}
-                  <button onClick={() => sharePDF(stats, calculatedEntries, vehicleProfile, maintenance)} className="group bg-slate-900/50 border border-white/5 hover:border-violet-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
+                  {/* Tarjeta 4: Compartir Informe Inteligente */}
+                  <button onClick={() => smartShareReport(stats, calculatedEntries, vehicleProfile, maintenance)} className="group bg-slate-900/50 border border-white/5 hover:border-violet-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
                     <div className="w-12 h-12 bg-violet-500/10 text-violet-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                       <Share2 size={24} />
                     </div>
-                    <h3 className="text-lg font-black uppercase text-white mb-2">Compartir PDF</h3>
-                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Envía el reporte oficial por WhatsApp, Email o cualquier app de mensajería.</p>
+                    <h3 className="text-lg font-black uppercase text-white mb-2">Compartir Informe</h3>
+                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Envía PDF si es compatible, o un resumen de texto para WhatsApp si el móvil es antiguo.</p>
                   </button>
 
-                  {/* Tarjeta 5: Backup Email (CSV) */}
-                  <button onClick={() => setShowBackup(true)} className="group bg-slate-900/50 border border-white/5 hover:border-amber-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
+                  {/* Tarjeta 5: Backup CSV Directo (Lógica Master Paleo) */}
+                  <button onClick={() => shareCSV(calculatedEntries)} className="group bg-slate-900/50 border border-white/5 hover:border-amber-500/50 p-8 rounded-2xl text-left transition-all hover:bg-slate-900 shadow-xl">
                     <div className="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                       <Mail size={24} />
                     </div>
-                    <h3 className="text-lg font-black uppercase text-white mb-2">Backup CSV Email</h3>
-                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Envía una copia de seguridad de los datos (CSV) adjunta a tu correo.</p>
+                    <h3 className="text-lg font-black uppercase text-white mb-2">Backup CSV (Email)</h3>
+                    <p className="text-xs text-slate-500 font-bold leading-relaxed">Copia de seguridad en archivo adjunto (Compatible con móviles antiguos).</p>
                   </button>
 
                   {/* Tarjeta 6: Analítica Anual */}
@@ -891,18 +856,6 @@ const App: React.FC = () => {
                };
                reader.readAsText(file);
             }} accept=".csv" className="hidden" />
-          </div>
-        </div>
-      )}
-
-      {showBackup && (
-        <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6 sm:p-8">
-          <div className="premium-card w-full max-w-md p-8 sm:p-12 relative shadow-2xl text-center">
-            <button onClick={() => setShowBackup(false)} className="absolute top-6 right-6 text-slate-500 hover:text-white transition-all"><X size={28}/></button>
-            <Mail className="mx-auto mb-6 text-amber-500" size={48} />
-            <h3 className="text-xl font-black uppercase tracking-tighter text-white mb-2">Email Backup</h3>
-            <input id="backup-email-input" type="email" placeholder="tu@email.com" className="w-full bg-slate-900 border-none rounded-xl py-4 px-6 text-white outline-none focus:ring-1 focus:ring-amber-500 text-sm font-bold mb-4" />
-            <button onClick={() => handleBackupEmail((document.getElementById('backup-email-input') as HTMLInputElement).value)} className="w-full py-5 bg-amber-500 text-slate-950 rounded-xl font-black uppercase text-[10px] tracking-widest">Enviar Backup Ahora</button>
           </div>
         </div>
       )}
