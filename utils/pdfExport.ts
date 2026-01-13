@@ -11,7 +11,45 @@ interface MaintenanceData {
   isUrgent: boolean;
 }
 
-// --- GENERADOR DEL DOCUMENTO (COMÚN) ---
+// --- 1. GENERADOR DE TEXTO WHATSAPP (FALLBACK) ---
+const generateMarkdownReport = (
+  stats: SummaryStats, 
+  profile: VehicleProfile | null, 
+  maintenance: MaintenanceData | null
+) => {
+  const date = new Date().toLocaleDateString('es-ES');
+  
+  let itvTxt = "No configurada";
+  if (profile) {
+     const itvDate = calculateNextITV(profile.registrationDate, profile.category, profile.lastItvDate);
+     if (itvDate) itvTxt = itvDate.toLocaleDateString('es-ES');
+  }
+
+  let mantTxt = "No configurado";
+  if (maintenance) {
+     mantTxt = `${maintenance.nextDate.toLocaleDateString('es-ES')} (o en ${maintenance.kmRemaining} km)`;
+  }
+
+  // Formato Markdown para WhatsApp (*negrita*, _cursiva_)
+  return `
+🚗 *INFORME FUELMASTER PRO* 🚗
+📅 Fecha: ${date}
+
+📊 *ESTADÍSTICAS GLOBALES*
+• Consumo Medio: *${stats.avgConsumption.toFixed(2)} L/100km*
+• Gasto Total: *${stats.totalCost.toFixed(2)} €*
+• Coste por 100km: *${stats.avgCostPer100Km.toFixed(2)} €*
+• Km Totales: *${(stats.lastOdometer - stats.firstOdometer).toLocaleString()} km*
+
+🔧 *MANTENIMIENTO*
+• Próxima Revisión: *${mantTxt}*
+• Próxima ITV: *${itvTxt}*
+
+_Generado por FuelMaster Pro_
+  `.trim();
+};
+
+// --- 2. GENERADOR PDF (VISUAL) ---
 const generatePDFDoc = (
   stats: SummaryStats, 
   entries: CalculatedEntry[], 
@@ -22,8 +60,8 @@ const generatePDFDoc = (
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
-  // 1. HEADER
-  doc.setFillColor(16, 185, 129);
+  // HEADER
+  doc.setFillColor(16, 185, 129); // Emerald
   doc.rect(0, 0, pageWidth, 45, 'F');
   
   doc.setTextColor(255, 255, 255);
@@ -37,9 +75,8 @@ const generatePDFDoc = (
   
   doc.setFontSize(9);
   doc.text(`Fecha: ${new Date().toLocaleDateString('es-ES')}`, pageWidth - 15, 20, { align: 'right' });
-  doc.text(`Ref: ${Date.now().toString().slice(-6)}`, pageWidth - 15, 28, { align: 'right' });
 
-  // 2. DATOS
+  // DATOS
   let nextItvString = 'No registrada';
   let nextServiceString = 'No configurado';
 
@@ -52,7 +89,7 @@ const generatePDFDoc = (
     nextServiceString = `${maintenance.nextDate.toLocaleDateString('es-ES')} (${maintenance.kmRemaining.toLocaleString('es-ES')} km rest.)`;
   }
 
-  // 3. RESUMEN
+  // RESUMEN
   doc.setTextColor(30, 41, 59);
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
@@ -75,15 +112,10 @@ const generatePDFDoc = (
         1: { cellWidth: 'auto' },
         2: { fontStyle: 'bold', fillColor: [241, 245, 249], cellWidth: 40 },
         3: { cellWidth: 'auto' }
-    },
-    didParseCell: function(data: any) {
-        if (data.section === 'body' && (data.column.index === 1 || data.column.index === 3)) {
-            data.cell.styles.fontStyle = 'bold';
-        }
     }
   });
 
-  // 4. TABLA
+  // TABLA HISTORIAL
   const tableData = entries.slice().reverse().map(e => [
     e.date,
     e.kmFinal.toLocaleString('es-ES'),
@@ -103,28 +135,15 @@ const generatePDFDoc = (
     startY: finalY + 5,
     head: [['Fecha', 'Odómetro', 'Dist. (km)', 'Litros', 'PVP/L', 'Coste', 'L/100km']],
     body: tableData,
-    headStyles: { 
-        fillColor: [15, 23, 42],
-        textColor: [255, 255, 255], 
-        fontSize: 9,
-        fontStyle: 'bold',
-        halign: 'center'
-    },
+    headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontSize: 9, fontStyle: 'bold', halign: 'center' },
     styles: { fontSize: 8, cellPadding: 3, halign: 'center' },
-    columnStyles: { 0: { halign: 'left' }, 5: { fontStyle: 'bold' } },
-    alternateRowStyles: { fillColor: [248, 250, 252] },
-    didDrawPage: function (data: any) {
-        doc.setFontSize(8);
-        doc.setTextColor(150);
-        doc.text(`Página ${doc.internal.getNumberOfPages()}`, pageWidth - 20, pageHeight - 10, { align: 'right' });
-        doc.text('Generado por FuelMaster Pro', 15, pageHeight - 10);
-    }
+    alternateRowStyles: { fillColor: [248, 250, 252] }
   });
 
   return doc;
 };
 
-// --- FUNCIÓN 1: DESCARGAR ---
+// --- 3. EXPORTAR SIMPLE (DESCARGA) ---
 export const exportToPDF = (
   stats: SummaryStats, 
   entries: CalculatedEntry[], 
@@ -135,33 +154,44 @@ export const exportToPDF = (
   doc.save(`FuelMaster_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
 };
 
-// --- FUNCIÓN 2: COMPARTIR (VERSIÓN ROBUSTA: SOLO ARCHIVO) ---
-export const sharePDF = async (
+// --- 4. SMART SHARE (LÓGICA HÍBRIDA) ---
+export const smartShareReport = async (
   stats: SummaryStats, 
   entries: CalculatedEntry[], 
   profile: VehicleProfile | null, 
   maintenance: MaintenanceData | null
 ) => {
-  const doc = generatePDFDoc(stats, entries, profile, maintenance);
-  
-  // Usamos 'blob' que es lo más estándar para móviles
-  const blob = doc.output('blob');
-  const fileName = `FuelMaster_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
-  const file = new File([blob], fileName, { type: 'application/pdf' });
+  // INTENTO 1: PDF (Móvil moderno)
+  try {
+    const doc = generatePDFDoc(stats, entries, profile, maintenance);
+    const blob = doc.output('blob');
+    const fileName = `FuelMaster_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
+    const file = new File([blob], fileName, { type: 'application/pdf' });
 
-  // Intentamos compartir SOLO EL ARCHIVO (sin texto ni título para no liar a WhatsApp/Gmail)
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({
-        files: [file]
+        files: [file] // Sin texto, solo archivo para evitar bugs
       });
-      return;
-    } catch (err) {
-      console.log('Error o cancelación al compartir:', err);
+      return; // Éxito
+    }
+    // Si no soporta archivos, lanzamos error para ir al catch
+    throw new Error("No soporta compartir archivos");
+
+  } catch (pdfError) {
+    console.log("Fallo PDF, intentando modo Texto...");
+    
+    // INTENTO 2: TEXTO MARKDOWN (Móvil antiguo)
+    try {
+        const textReport = generateMarkdownReport(stats, profile, maintenance);
+        await navigator.share({
+            title: 'Informe FuelMaster',
+            text: textReport
+        });
+    } catch (textError) {
+        // ULTIMO RECURSO: Descargar PDF
+        alert("No se pudo compartir. Descargando PDF...");
+        const doc = generatePDFDoc(stats, entries, profile, maintenance);
+        doc.save(`FuelMaster_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
     }
   }
-
-  // Si llegamos aquí es que falló o no es compatible -> DESCARGA AUTOMÁTICA
-  alert("No se pudo abrir el menú de compartir. Descargando archivo...");
-  doc.save(fileName);
 };
