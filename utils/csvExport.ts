@@ -1,7 +1,3 @@
-
-
-
-
 import { CalculatedEntry } from '../types';
 
 export const generateCSV = (entries: CalculatedEntry[]): string => {
@@ -44,3 +40,25 @@ export const downloadCSV = (entries: CalculatedEntry[], filename: string) => {
   document.body.removeChild(link);
 };
 
+// --- LÓGICA PORTADA DE MASTER PALEO ---
+export const shareCSV = async (entries: CalculatedEntry[]) => { 
+    const csvContent = generateCSV(entries);
+    // 1. Creamos el archivo FÍSICO en memoria (Igual que Master Paleo)
+    const file = new File([csvContent], "fuelmaster_backup.csv", { type: "text/csv" });
+    
+    // 2. Verificamos si el navegador soporta compartir ARCHIVOS
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { 
+          // 3. CLAVE DEL ÉXITO: Solo enviamos 'title' y 'files'.
+          // AL NO ENVIAR 'text', Android no intenta procesar el cuerpo del mensaje
+          // y simplemente adjunta el archivo al correo.
+          await navigator.share({ title: 'FuelMaster Backup', files: [file] }); 
+      } catch (err) {
+          console.log("Share cancelado por el usuario");
+      }
+    } else { 
+        // Fallback: Si no soporta compartir, descargamos
+        downloadCSV(entries, "fuelmaster_backup.csv"); 
+        alert("Tu dispositivo no soporta compartir archivos directamente. Se ha descargado el CSV."); 
+    }
+};
