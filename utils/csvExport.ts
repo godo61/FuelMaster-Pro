@@ -1,6 +1,6 @@
 import { CalculatedEntry } from '../types';
 
-// 1. Generar el texto CSV
+// Generador de texto CSV (Igual que antes)
 export const generateCSV = (entries: CalculatedEntry[]): string => {
   const headers = ['Fecha', 'Km Inicial', 'Km Final', 'Distancia', 'Litros', 'Precio/L', 'Coste Total', 'Consumo (L/100km)', 'Km/L'];
   const rows = entries.map(e => [
@@ -18,7 +18,7 @@ export const generateCSV = (entries: CalculatedEntry[]): string => {
   return [headers.join(','), ...rows].join('\n');
 };
 
-// 2. Descarga directa
+// Descarga directa (Fallback)
 export const downloadCSV = (entries: CalculatedEntry[], filename: string) => {
   const csvContent = generateCSV(entries);
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -31,27 +31,28 @@ export const downloadCSV = (entries: CalculatedEntry[], filename: string) => {
   document.body.removeChild(link);
 };
 
-// 3. SHARE MODIFICADO (Truco anti-crash)
+// --- LA LÓGICA DE MASTER PALEO ---
 export const shareCSV = async (entries: CalculatedEntry[]) => {
   const csvContent = generateCSV(entries);
-  const fileName = "fuelmaster_backup.csv";
+  const fileName = "fuelmaster_backup.csv"; // Nombre fijo como en Master Paleo
   
-  // TRUCO: Usamos 'text/plain' en lugar de 'text/csv'.
-  // Esto hace que Android trate el archivo de forma más ligera y evita crasheos en móviles viejos.
-  // La extensión .csv se mantiene, así que Excel lo abrirá bien igual.
-  const file = new File([csvContent], fileName, { type: 'text/plain' });
+  // 1. Tipo exacto que funciona en tu móvil
+  const file = new File([csvContent], fileName, { type: "text/csv" });
 
+  // 2. Validación y envío
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
-      // Sin 'text' en el payload, igual que Master Paleo
-      await navigator.share({
-        title: 'FuelMaster Backup',
-        files: [file]
+      // 3. SOLO Title y Files. Sin 'text' para que Gmail no se confunda.
+      await navigator.share({ 
+        title: 'FuelMaster Backup', 
+        files: [file] 
       });
     } catch (err) {
-      console.log('Share cancelado');
+      console.log('Share cancelado o error');
     }
   } else {
+    // Si falla, descargamos
     downloadCSV(entries, fileName);
+    alert("Tu dispositivo no soporta compartir archivos directos. Se ha descargado el archivo.");
   }
 };
