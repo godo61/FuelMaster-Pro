@@ -3,7 +3,7 @@ import {
   Upload, Zap, Activity, Wrench, X, RefreshCw, Plus, 
   Euro, Navigation, Trash2, Fuel, TrendingUp, 
   Database, Lock, Download, LogOut, Smartphone, ShieldCheck, 
-  AlertCircle, Calendar, Sun, Moon, Mail, FileText, Globe, Settings, AlertTriangle, MapPin, Car, Info, BarChart3, Briefcase, Share2, LayoutDashboard, History, MessageSquare
+  AlertCircle, Calendar, Sun, Moon, Mail, FileText, Globe, Settings, AlertTriangle, MapPin, Car, Info, BarChart3, Briefcase, Share2, LayoutDashboard, History, MessageSquare, HelpCircle, FileInput
 } from 'lucide-react';
 
 // --- IMPORTS ---
@@ -13,9 +13,9 @@ import { parseFuelCSV } from './utils/csvParser';
 import { calculateEntries, getSummaryStats, getDaysRemaining } from './utils/calculations';
 import { calculateNextITV } from './utils/itvLogic';
 import { exportToPDF } from './utils/pdfExport';
-import { downloadCSV, shareCSV } from './utils/csvExport'; // Usamos la lógica Master Paleo
+import { downloadCSV, shareCSV } from './utils/csvExport'; 
 import { translations } from './utils/translations';
-import FuelChart from './components/FuelChart'; // Mantenemos el Chart externo por ahora
+import FuelChart from './components/FuelChart'; 
 
 const LOCAL_STORAGE_KEY = 'fuelmaster_entries';
 const VEHICLE_KEY = 'fuelmaster_vehicle';
@@ -67,7 +67,9 @@ const uiText = {
     navDash: "Gráficos",
     navHist: "Historial",
     navTools: "Gestión",
-    avgYear: "Media Anual" // Nuevo
+    avgYear: "Media Anual",
+    helpTitle: "Guía de Uso",
+    close: "Cerrar"
   },
   en: {
     toolsTitle: "Management Panel",
@@ -110,12 +112,14 @@ const uiText = {
     navDash: "Charts",
     navHist: "History",
     navTools: "Tools",
-    avgYear: "Annual Avg" // Nuevo
+    avgYear: "Annual Avg",
+    helpTitle: "User Guide",
+    close: "Close"
   }
 };
 
 // ==========================================
-// 0. COMPONENTE STATCARD (Incrustado para controlar colores)
+// 0. COMPONENTE STATCARD 
 // ==========================================
 const StatCard = ({ label, value, unit, icon, color, trendData }: any) => {
     // Calculamos tendencia simple
@@ -125,7 +129,7 @@ const StatCard = ({ label, value, unit, icon, color, trendData }: any) => {
         const current = trendData[trendData.length - 1];
         const prev = trendData[trendData.length - 2];
         if (current > prev) { TrendIcon = TrendingUp; trendColor = "text-red-500"; }
-        else if (current < prev) { TrendIcon = TrendingUp; trendColor = "text-emerald-500"; } // Usamos el mismo icono pero rotado o color distinto
+        else if (current < prev) { TrendIcon = TrendingUp; trendColor = "text-emerald-500"; } 
     }
 
     return (
@@ -144,7 +148,7 @@ const StatCard = ({ label, value, unit, icon, color, trendData }: any) => {
                     <span className="text-2xl font-black text-slate-900 dark:text-white font-mono-prec tracking-tight">{value}</span>
                     <span className="text-[10px] font-bold text-slate-400">{unit}</span>
                 </div>
-                {/* Minigráfico de tendencia (simulado visualmente con puntos) */}
+                {/* Minigráfico de tendencia */}
                 {trendData && (
                     <div className="flex items-end gap-[2px] h-6 mt-3 opacity-50">
                         {trendData.map((d: number, i: number) => (
@@ -194,19 +198,15 @@ const BottomNavInternal = ({ activeView, onNavigate, lang }: { activeView: ViewT
 };
 
 // ==========================================
-// 2. VISTA RESUMEN (Ahora con Media Anual y colores fijos)
+// 2. VISTA RESUMEN
 // ==========================================
 const StatsViewInternal = ({ stats, trends, t, annualStats, txt }: any) => (
   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 sm:gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24">
-    {/* Tarjetas existentes */}
     <StatCard label={String(t.consumption)} value={stats.avgConsumption.toFixed(2)} unit="L/100" icon={<Activity size={20}/>} color="bg-blue-500" trendData={trends.consumption} />
     <StatCard label={String(t.efficiency)} value={stats.avgKmPerLiter.toFixed(2)} unit="km/L" icon={<Zap size={20}/>} color="bg-emerald-500" trendData={trends.efficiency} />
     <StatCard label={String(t.avgPvp)} value={stats.avgPricePerLiter.toFixed(3)} unit="€/L" icon={<Euro size={20}/>} color="bg-amber-500" trendData={trends.pvp} />
     <StatCard label={String(t.totalCost)} value={stats.totalCost.toLocaleString('es-ES', { maximumFractionDigits: 0 })} unit="€" icon={<Database size={20}/>} color="bg-violet-500" trendData={trends.cost} />
-    
-    {/* NUEVA TARJETA: MEDIA ANUAL */}
     <StatCard label={txt.avgYear} value={annualStats.avgKm.toLocaleString('es-ES', { maximumFractionDigits: 0 })} unit="km/año" icon={<Calendar size={20}/>} color="bg-pink-500" trendData={null} />
-
     <StatCard label={String(t.cost100)} value={stats.avgCostPer100Km.toFixed(2)} unit="€" icon={<TrendingUp size={20}/>} color="bg-rose-500" trendData={trends.cost100} />
     <StatCard label={String(t.liters)} value={stats.totalFuel.toFixed(0)} unit="L" icon={<Fuel size={20}/>} color="bg-indigo-500" trendData={trends.liters} />
     <StatCard label={String(t.odometer)} value={stats.lastOdometer.toLocaleString()} unit="km" icon={<Navigation size={20}/>} color="bg-slate-500" trendData={trends.odometer} />
@@ -214,7 +214,7 @@ const StatsViewInternal = ({ stats, trends, t, annualStats, txt }: any) => (
 );
 
 // ==========================================
-// 3. VISTA HISTORIAL (Ajustada para Modo Claro)
+// 3. VISTA HISTORIAL
 // ==========================================
 const HistoryViewInternal = ({ entries, onDelete, t }: any) => (
   <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-white/5 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24">
@@ -237,11 +237,10 @@ const HistoryViewInternal = ({ entries, onDelete, t }: any) => (
 );
 
 // ==========================================
-// 4. VISTA HERRAMIENTAS (Ajustada para Modo Claro)
+// 4. VISTA HERRAMIENTAS
 // ==========================================
 const ToolsViewInternal = ({ onImport, onExportCSV, onExportPDF, onBackupEmail, onAnnualStats, lang }: any) => {
   const txt = uiText[lang as 'es'|'en'] || uiText.es;
-  // Clase común para los botones
   const btnClass = "flex items-center gap-4 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-white/5 hover:border-emerald-500/50 p-5 rounded-2xl w-full text-left transition-all shadow-sm dark:shadow-none";
   
   return (
@@ -254,14 +253,127 @@ const ToolsViewInternal = ({ onImport, onExportCSV, onExportPDF, onBackupEmail, 
       <button onClick={onImport} className={btnClass}><div className="w-10 h-10 bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 rounded-xl flex items-center justify-center"><Upload size={20} /></div><div><h3 className="font-bold text-slate-900 dark:text-white text-sm">{txt.importData}</h3><p className="text-[10px] text-slate-500">{txt.importDesc}</p></div></button>
       <button onClick={onExportCSV} className={btnClass}><div className="w-10 h-10 bg-blue-500/10 text-blue-600 dark:text-blue-500 rounded-xl flex items-center justify-center"><FileText size={20} /></div><div><h3 className="font-bold text-slate-900 dark:text-white text-sm">{txt.exportCsv}</h3><p className="text-[10px] text-slate-500">{txt.exportCsvDesc}</p></div></button>
       <button onClick={onExportPDF} className={btnClass}><div className="w-10 h-10 bg-violet-500/10 text-violet-600 dark:text-violet-500 rounded-xl flex items-center justify-center"><Download size={20} /></div><div><h3 className="font-bold text-slate-900 dark:text-white text-sm">{txt.reportPdf}</h3><p className="text-[10px] text-slate-500">{txt.reportPdfDesc}</p></div></button>
-      <button onClick={onBackupEmail} className={btnClass}><div className="w-10 h-10 bg-amber-500/10 text-amber-600 dark:text-amber-500 rounded-xl flex items-center justify-center"><Mail size={20} /></div><div><h3 className="font-bold text-slate-900 dark:text-white text-sm">{txt.backupEmail}</h3><p className="text-[10px] text-slate-500">{txt.backupDesc}</p></div></button>
+      <button onClick={onBackupEmail} className={btnClass}><div className="w-10 h-10 bg-amber-500/10 text-amber-600 dark:text-amber-500 rounded-xl flex items-center justify-center"><Share2 size={20} /></div><div><h3 className="font-bold text-slate-900 dark:text-white text-sm">{txt.backupEmail}</h3><p className="text-[10px] text-slate-500">{txt.backupDesc}</p></div></button>
       <button onClick={onAnnualStats} className={btnClass}><div className="w-10 h-10 bg-pink-500/10 text-pink-600 dark:text-pink-500 rounded-xl flex items-center justify-center"><BarChart3 size={20} /></div><div><h3 className="font-bold text-slate-900 dark:text-white text-sm">{txt.annualStats}</h3><p className="text-[10px] text-slate-500">{txt.annualDesc}</p></div></button>
     </div>
   );
 };
 
 // ==========================================
-// 5. APP PRINCIPAL
+// 5. NUEVA GUÍA DE AYUDA (MODAL INTERNO)
+// ==========================================
+const GuideModal = ({ onClose, lang }: { onClose: () => void, lang: 'es'|'en' }) => {
+  const isEs = lang === 'es';
+  const modalBg = "bg-white dark:bg-slate-900";
+  const modalText = "text-slate-900 dark:text-white";
+
+  const content = {
+    title: isEs ? "Guía FuelMaster Pro" : "FuelMaster Pro Guide",
+    
+    // Mantenimiento
+    maintTitle: isEs ? "Mantenimiento & ITV" : "Maintenance & MOT",
+    maintDesc: isEs 
+       ? "Revisiones: El sistema usa la regla de 'lo que ocurra antes': 15.000 km o 1 año desde el último servicio."
+       : "Service: System uses 'whichever comes first': 15,000 km or 1 year since last service.",
+    
+    // ITV - NUEVA EXPLICACIÓN DETALLADA
+    itvDesc: isEs 
+       ? "Control ITV: Basado en la normativa española (4-2-1 años). Introduce la fecha de matriculación y categoría en Ajustes; la App calculará la fecha legal automáticamente."
+       : "MOT/ITV: Based on local regulations (4-2-1 years). Enter registration date & category in Settings; App calculates deadline automatically.",
+    
+    colors: isEs 
+       ? "🎨 Semáforo: 🟢 Todo bien | 🟠 Aviso (Menos de 1 mes o 1000km) | 🔴 Vencido."
+       : "🎨 Status: 🟢 All good | 🟠 Warning (< 1 month or 1000km) | 🔴 Expired.",
+
+    // Datos
+    dataTitle: isEs ? "Datos y Backups" : "Data & Backups",
+    
+    // Backup Email - NUEVA EXPLICACIÓN DETALLADA
+    emailText: isEs
+       ? "📧 Backup Email: Abre el menú nativo de 'Compartir' de tu móvil para enviar el archivo CSV por Correo, WhatsApp, Telegram o guardarlo en Drive."
+       : "📧 Email Backup: Opens native 'Share' menu to send CSV via Email, WhatsApp, Telegram or save to Drive.",
+    
+    csvText: isEs 
+       ? "📂 Exportar CSV: Descarga directa del archivo de datos para Excel."
+       : "📂 Export CSV: Direct download of data file for Excel.",
+    
+    pdfText: isEs
+       ? "📄 Reporte PDF: Genera un informe visual oficial con gráficas y totales."
+       : "📄 PDF Report: Generates an official visual report with charts and totals.",
+    
+    // Registro
+    accountTitle: isEs ? "Sincronización" : "Synchronization",
+    accountDesc: isEs
+       ? "Modo Invitado = Datos solo en este móvil. Crea una cuenta para tener copia en la nube y acceder desde varios dispositivos."
+       : "Guest Mode = Data on this phone only. Create an account to backup to cloud and access from multiple devices."
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className={`${modalBg} rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto border border-slate-200 dark:border-white/10 animate-in fade-in zoom-in-95 duration-200`}>
+         
+         <div className="sticky top-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center z-10">
+            <h2 className={`text-xl font-black italic uppercase ${modalText} flex items-center gap-2`}>
+               <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-1.5 rounded-lg"><HelpCircle size={20} /></span>
+               {content.title}
+            </h2>
+            <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500"><X size={20} /></button>
+         </div>
+
+         <div className="p-6 space-y-8">
+            {/* Mantenimiento */}
+            <div className="space-y-3">
+               <h3 className="font-bold text-slate-500 dark:text-slate-400 uppercase text-xs tracking-wider border-b border-slate-100 dark:border-white/5 pb-2">{content.maintTitle}</h3>
+               <div className="flex gap-4">
+                  <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-xl h-fit text-orange-600 dark:text-orange-400"><Wrench size={24}/></div>
+                  <div className="space-y-3">
+                     <p className={`text-xs ${modalText}`}>{content.maintDesc}</p>
+                     <p className={`text-xs font-medium text-blue-600 dark:text-blue-400`}>{content.itvDesc}</p>
+                     <div className="text-[10px] font-bold bg-slate-50 dark:bg-slate-800 p-2 rounded border border-slate-100 dark:border-white/5 text-slate-600 dark:text-slate-300">{content.colors}</div>
+                  </div>
+               </div>
+            </div>
+
+            {/* Datos */}
+            <div className="space-y-3">
+               <h3 className="font-bold text-slate-500 dark:text-slate-400 uppercase text-xs tracking-wider border-b border-slate-100 dark:border-white/5 pb-2">{content.dataTitle}</h3>
+               <div className="grid gap-3">
+                  <div className="flex items-start gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-white/5">
+                     <Share2 size={18} className="text-amber-500 mt-0.5 shrink-0"/>
+                     <p className={`text-xs ${modalText}`}>{content.emailText}</p>
+                  </div>
+                  <div className="flex items-start gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-white/5">
+                     <FileText size={18} className="text-blue-500 mt-0.5 shrink-0"/>
+                     <p className={`text-xs ${modalText}`}>{content.csvText}</p>
+                  </div>
+                  <div className="flex items-start gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-white/5">
+                     <Download size={18} className="text-violet-500 mt-0.5 shrink-0"/>
+                     <p className={`text-xs ${modalText}`}>{content.pdfText}</p>
+                  </div>
+               </div>
+            </div>
+
+             {/* Cuenta */}
+             <div className="space-y-3">
+               <h3 className="font-bold text-slate-500 dark:text-slate-400 uppercase text-xs tracking-wider border-b border-slate-100 dark:border-white/5 pb-2">{content.accountTitle}</h3>
+               <div className="flex gap-4">
+                  <div className="bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-xl h-fit text-emerald-600 dark:text-emerald-400"><Zap size={24}/></div>
+                  <p className={`text-xs ${modalText}`}>{content.accountDesc}</p>
+               </div>
+            </div>
+         </div>
+
+         <div className="sticky bottom-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 border-t border-slate-100 dark:border-white/5 flex justify-end">
+            <button onClick={onClose} className="px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold uppercase text-xs rounded-xl hover:opacity-90">{uiText[lang].close}</button>
+         </div>
+      </div>
+    </div>
+  );
+};
+
+
+// ==========================================
+// 6. APP PRINCIPAL
 // ==========================================
 
 const App: React.FC = () => {
@@ -289,7 +401,8 @@ const App: React.FC = () => {
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showNewEntry, setShowNewEntry] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
+  const [showSettings, setShowSettings] = useState(false); // Ajustes de coche
+  const [showGuide, setShowGuide] = useState(false);       // Guía de Ayuda
   const [showAnnualStats, setShowAnnualStats] = useState(false);
   const [newEntryForm, setNewEntryForm] = useState({ date: new Date().toISOString().split('T')[0], kmFinal: '', fuelAmount: '', pricePerLiter: '' });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -358,7 +471,7 @@ const App: React.FC = () => {
     const profile: VehicleProfile = { registrationDate: fd.get('regDate') as string, lastItvDate: fd.get('lastItv') as string || undefined, category: fd.get('category') as VehicleCategory, lastServiceKm: Number(fd.get('lastServiceKm')) || undefined, lastServiceDate: fd.get('lastServiceDate') as string || undefined };
     setVehicleProfile(profile); localStorage.setItem(VEHICLE_KEY, JSON.stringify(profile));
     if (session?.user?.id && isSupabaseConfigured) await supabase.from('vehicle_profiles').upsert({ user_id: session.user.id, registration_date: profile.registrationDate, last_itv_date: profile.lastItvDate, category: profile.category, last_service_km: profile.lastServiceKm, last_service_date: profile.lastServiceDate });
-    setShowHelp(false);
+    setShowSettings(false);
   };
 
   const deleteEntry = async (id: string) => {
@@ -399,6 +512,10 @@ const App: React.FC = () => {
   const ecoText = `text-${ecoColor}-600 dark:text-${ecoColor}-500`;
   const ecoBorder = `border-${ecoColor}-500`;
 
+  const modalBg = "bg-white dark:bg-slate-900";
+  const modalText = "text-slate-900 dark:text-white";
+  const modalInput = "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white";
+
   if (isLoading) return <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-900 dark:text-white"><Zap className="text-emerald-500 animate-spin" /></div>;
 
   if (!session && !isLocalMode) {
@@ -408,14 +525,23 @@ const App: React.FC = () => {
     );
   }
 
-  // Estilos comunes para modales
-  const modalBg = "bg-white dark:bg-slate-900";
-  const modalText = "text-slate-900 dark:text-white";
-  const modalInput = "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white";
-
   return (
     <div className={`min-h-screen pb-20 ${theme === 'light' ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-white'}`}>
-      <nav className="h-16 bg-white/80 dark:bg-slate-950/40 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 flex items-center px-6 sticky top-0 z-[60] justify-between"><div className="flex items-center gap-3"><div className={`w-8 h-8 ${ecoBg} rounded-lg flex items-center justify-center text-slate-900`}><Zap size={18} fill="currentColor" /></div><h1 className="text-lg font-black italic tracking-tighter uppercase text-slate-900 dark:text-white">{String(t.appTitle)}</h1></div><div className="flex items-center gap-3"><button onClick={() => setLang(lang === 'es' ? 'en' : 'es')} className="text-slate-400 hover:text-slate-900 dark:hover:text-white"><Globe size={20} /></button><button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="text-slate-400 hover:text-slate-900 dark:hover:text-white">{theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}</button><button onClick={() => setShowHelp(true)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white"><Settings size={20}/></button><button onClick={() => { localStorage.clear(); window.location.reload(); }} className="text-red-500 hover:text-red-600 dark:hover:text-red-400"><LogOut size={20} /></button></div></nav>
+      <nav className="h-16 bg-white/80 dark:bg-slate-950/40 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 flex items-center px-6 sticky top-0 z-[60] justify-between">
+        <div className="flex items-center gap-3">
+            <div className={`w-8 h-8 ${ecoBg} rounded-lg flex items-center justify-center text-slate-900`}><Zap size={18} fill="currentColor" /></div>
+            <h1 className="text-lg font-black italic tracking-tighter uppercase text-slate-900 dark:text-white">{String(t.appTitle)}</h1>
+        </div>
+        <div className="flex items-center gap-3">
+            <button onClick={() => setLang(lang === 'es' ? 'en' : 'es')} className="text-slate-400 hover:text-slate-900 dark:hover:text-white"><Globe size={20} /></button>
+            <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="text-slate-400 hover:text-slate-900 dark:hover:text-white">{theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}</button>
+            {/* NUEVO BOTÓN GUÍA */}
+            <button onClick={() => setShowGuide(true)} className="text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400"><HelpCircle size={20}/></button>
+            {/* BOTÓN SETTINGS (Ahora solo para ajustes de coche) */}
+            <button onClick={() => setShowSettings(true)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white"><Settings size={20}/></button>
+            <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="text-red-500 hover:text-red-600 dark:hover:text-red-400"><LogOut size={20} /></button>
+        </div>
+      </nav>
 
       <main className="max-w-7xl mx-auto px-4 py-6">
         {stats ? (
@@ -434,7 +560,7 @@ const App: React.FC = () => {
                    
                    <div className={`bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-white/5 p-6 border-l-4 ${ecoBorder} flex flex-col gap-4`}><h3 className={`text-[10px] font-black uppercase flex items-center gap-2 text-slate-900 dark:text-white`}><MapPin size={14} className={ecoText} /> {String(t.tripCalculator)}</h3><div className="relative h-8 w-full bg-slate-100 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-white/5 overflow-hidden flex items-center px-4"><div className="absolute left-0 h-[1px] w-full border-t border-dashed border-slate-400/50 dark:border-slate-700/50"></div><div className="relative z-10 transition-all duration-500 ease-out" style={{ transform: `translateX(calc(${carPos}% - 24px))` }}><Car size={18} className={`${ecoText} drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]`} /></div></div><div className="space-y-3"><div className="relative"><input type="number" placeholder={String(t.tripDistance)} value={tripKm} onChange={(e) => setTripKm(e.target.value)} className={`w-full ${modalInput} border rounded-xl py-3 px-4 text-xs font-bold outline-none focus:border-${ecoColor}-500 font-mono-prec`} /><span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-500">KM</span></div>{tripKm && (<><div className="grid grid-cols-2 gap-2"><div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-white/5"><p className="text-[7px] font-black text-slate-500 uppercase mb-1">{String(t.estFuel)}</p><p className={`text-sm font-black ${ecoText} font-mono-prec`}>{tripFuel.toFixed(1)} <span className="text-[8px] font-sans">L</span></p></div><div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-white/5"><p className="text-[7px] font-black text-slate-500 uppercase mb-1">{String(t.estCost)}</p><p className="text-sm font-black text-slate-900 dark:text-white font-mono-prec">{tripCost.toFixed(2)} <span className="text-[8px] font-sans">€</span></p></div></div><button onClick={() => setShowComparison(!showComparison)} className={`w-full py-3 bg-${ecoColor}-500/10 hover:bg-${ecoColor}-500/20 ${ecoText} text-[8px] font-black uppercase rounded-lg border ${ecoBorder}/20 transition-all flex items-center justify-center gap-2`}><TrendingUp size={12} /> {showComparison ? txt.hide : txt.compare}</button></>)}</div></div>
                    
-                   <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-white/5 p-6 border-l-4 border-blue-500 flex flex-col gap-6"><h3 className="text-[10px] font-black uppercase flex items-center gap-2 text-slate-900 dark:text-white"><Settings size={14} className="text-blue-500" /> {String(t.vehicleProfile)}</h3><div className="space-y-4">{isItvValid && (<div className={`p-4 rounded-xl border transition-all ${getItvBg(itvDays)}`}><p className="text-[8px] font-bold text-slate-500 uppercase">{String(t.itvRemaining)}</p><div className="flex items-center gap-3"><p className={`text-2xl font-black font-mono-prec ${getItvColor(itvDays)}`}>{itvDays}</p>{itvDays <= 30 && <AlertCircle size={16} className={getItvColor(itvDays)} />}</div><p className="text-[8px] font-black uppercase text-slate-500">Vencimiento: {itvDate?.toLocaleDateString()}</p></div>)}{maint ? (<div className={`p-4 rounded-xl border transition-all ${maint.isUrgent ? 'bg-orange-500/10 border-orange-500/20' : 'bg-blue-500/10 border-blue-500/20'}`}><div className="flex justify-between items-start mb-3"><p className="text-[8px] font-bold text-slate-500 uppercase">{txt.nextService}</p><div className="text-right"><p className="text-[8px] font-black text-slate-400 uppercase">{txt.deadline}</p><p className="text-[10px] font-black text-slate-900 dark:text-white">{maint.nextDate.toLocaleDateString()}</p></div></div><div className="w-full h-3 bg-slate-200 dark:bg-slate-900/50 rounded-full mb-4 overflow-hidden border border-slate-200 dark:border-white/5 relative"><div className={`h-full transition-all duration-1000 ease-out ${maint.isUrgent ? 'bg-orange-500' : 'bg-blue-500'}`} style={{ width: `${maint.servicePercent}%` }}></div></div><div className="grid grid-cols-2 gap-3 mb-3"><div className={`p-2 rounded-lg border ${!maint.isTimeLimit ? 'bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-white/10' : 'bg-slate-50 dark:bg-slate-900/30 border-transparent'}`}><p className="text-[7px] text-slate-500 uppercase font-bold mb-1">{txt.distance}</p><p className={`text-lg font-black font-mono-prec ${!maint.isTimeLimit ? (maint.isUrgent ? 'text-orange-500' : 'text-blue-500 dark:text-blue-400') : 'text-slate-400 dark:text-slate-300'}`}>{maint.kmRemaining.toLocaleString()}<span className="text-[8px] font-sans text-slate-500 ml-1">KM</span></p></div><div className={`p-2 rounded-lg border ${maint.isTimeLimit ? 'bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-white/10' : 'bg-slate-50 dark:bg-slate-900/30 border-transparent'}`}><p className="text-[7px] text-slate-500 uppercase font-bold mb-1">{txt.time}</p><p className={`text-lg font-black font-mono-prec ${maint.isTimeLimit ? (maint.isUrgent ? 'text-orange-500' : 'text-blue-500 dark:text-blue-400') : 'text-slate-400 dark:text-slate-300'}`}>{maint.daysRemaining}<span className="text-[8px] font-sans text-slate-500 ml-1">{txt.days}</span></p></div></div><p className="text-[8px] text-slate-500 uppercase font-black text-center">{maint.servicePercent.toFixed(0)}% {txt.lifeConsumed}</p></div>) : <div className="p-4 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/5"><p className="text-[8px] font-black text-slate-500 uppercase text-center">{txt.configMaint}</p></div>}<button onClick={() => setShowHelp(true)} className="w-full mt-2 py-3 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[8px] font-black uppercase rounded-lg border border-blue-500/20"><Settings size={12} className="inline mr-2"/>{txt.manageProfile}</button></div></div>
+                   <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-white/5 p-6 border-l-4 border-blue-500 flex flex-col gap-6"><h3 className="text-[10px] font-black uppercase flex items-center gap-2 text-slate-900 dark:text-white"><Settings size={14} className="text-blue-500" /> {String(t.vehicleProfile)}</h3><div className="space-y-4">{isItvValid && (<div className={`p-4 rounded-xl border transition-all ${getItvBg(itvDays)}`}><p className="text-[8px] font-bold text-slate-500 uppercase">{String(t.itvRemaining)}</p><div className="flex items-center gap-3"><p className={`text-2xl font-black font-mono-prec ${getItvColor(itvDays)}`}>{itvDays}</p>{itvDays <= 30 && <AlertCircle size={16} className={getItvColor(itvDays)} />}</div><p className="text-[8px] font-black uppercase text-slate-500">Vencimiento: {itvDate?.toLocaleDateString()}</p></div>)}{maint ? (<div className={`p-4 rounded-xl border transition-all ${maint.isUrgent ? 'bg-orange-500/10 border-orange-500/20' : 'bg-blue-500/10 border-blue-500/20'}`}><div className="flex justify-between items-start mb-3"><p className="text-[8px] font-bold text-slate-500 uppercase">{txt.nextService}</p><div className="text-right"><p className="text-[8px] font-black text-slate-400 uppercase">{txt.deadline}</p><p className="text-[10px] font-black text-slate-900 dark:text-white">{maint.nextDate.toLocaleDateString()}</p></div></div><div className="w-full h-3 bg-slate-200 dark:bg-slate-900/50 rounded-full mb-4 overflow-hidden border border-slate-200 dark:border-white/5 relative"><div className={`h-full transition-all duration-1000 ease-out ${maint.isUrgent ? 'bg-orange-500' : 'bg-blue-500'}`} style={{ width: `${maint.servicePercent}%` }}></div></div><div className="grid grid-cols-2 gap-3 mb-3"><div className={`p-2 rounded-lg border ${!maint.isTimeLimit ? 'bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-white/10' : 'bg-slate-50 dark:bg-slate-900/30 border-transparent'}`}><p className="text-[7px] text-slate-500 uppercase font-bold mb-1">{txt.distance}</p><p className={`text-lg font-black font-mono-prec ${!maint.isTimeLimit ? (maint.isUrgent ? 'text-orange-500' : 'text-blue-500 dark:text-blue-400') : 'text-slate-400 dark:text-slate-300'}`}>{maint.kmRemaining.toLocaleString()}<span className="text-[8px] font-sans text-slate-500 ml-1">KM</span></p></div><div className={`p-2 rounded-lg border ${maint.isTimeLimit ? 'bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-white/10' : 'bg-slate-50 dark:bg-slate-900/30 border-transparent'}`}><p className="text-[7px] text-slate-500 uppercase font-bold mb-1">{txt.time}</p><p className={`text-lg font-black font-mono-prec ${maint.isTimeLimit ? (maint.isUrgent ? 'text-orange-500' : 'text-blue-500 dark:text-blue-400') : 'text-slate-400 dark:text-slate-300'}`}>{maint.daysRemaining}<span className="text-[8px] font-sans text-slate-500 ml-1">{txt.days}</span></p></div></div><p className="text-[8px] text-slate-500 uppercase font-black text-center">{maint.servicePercent.toFixed(0)}% {txt.lifeConsumed}</p></div>) : <div className="p-4 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/5"><p className="text-[8px] font-black text-slate-500 uppercase text-center">{txt.configMaint}</p></div>}<button onClick={() => setShowSettings(true)} className="w-full mt-2 py-3 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[8px] font-black uppercase rounded-lg border border-blue-500/20"><Settings size={12} className="inline mr-2"/>{txt.manageProfile}</button></div></div>
                 </div>
               </div>
             )}
@@ -452,13 +578,15 @@ const App: React.FC = () => {
 
       {stats && <button onClick={() => setShowNewEntry(true)} className={`fixed bottom-24 right-6 w-14 h-14 ${ecoBg} text-slate-900 rounded-full shadow-lg shadow-${ecoColor}-500/30 flex items-center justify-center z-40 hover:scale-110 transition-transform`}><Plus size={28} /></button>}
 
-      {/* --- MODALES CON CORRECCIÓN DE COLOR (ADAPTATIVOS) --- */}
+      {/* --- MODALES --- */}
       {showNewEntry && (<div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4"><div className={`${modalBg} border border-slate-200 dark:border-white/10 w-full max-w-lg p-6 rounded-3xl relative shadow-2xl animate-in fade-in zoom-in-95 duration-200`}><button onClick={() => setShowNewEntry(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-white"><X size={24}/></button><h3 className={`text-lg font-black uppercase ${modalText} mb-6 flex items-center gap-2`}><Fuel size={20} className={ecoText} /> {txt.newReportTitle}</h3><form onSubmit={async (e) => { e.preventDefault(); const lit = Number(newEntryForm.fuelAmount); const pvp = Number(newEntryForm.pricePerLiter); const kf = Number(newEntryForm.kmFinal); const prev = calculatedEntries[calculatedEntries.length - 1]; const ki = prev ? prev.kmFinal : kf - 500; const newE: FuelEntry = { id: `en-${Date.now()}`, date: newEntryForm.date.split('-').reverse().join('/'), kmInicial: ki, kmFinal: kf, fuelAmount: lit, pricePerLiter: pvp, cost: lit * pvp, distancia: kf - ki, consumption: 0, kmPerLiter: 0 }; setEntries([...entries, newE]); setShowNewEntry(false); }} className="space-y-4"><div className="grid grid-cols-2 gap-4"><div className="col-span-2 space-y-1"><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.date}</label><input type="date" value={newEntryForm.date} onChange={e => setNewEntryForm({...newEntryForm, date: e.target.value})} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div><div className="space-y-1"><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.currentKm}</label><input type="number" value={newEntryForm.kmFinal} onChange={e => setNewEntryForm({...newEntryForm, kmFinal: e.target.value})} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div><div className="space-y-1"><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.liters}</label><input type="number" step="0.01" value={newEntryForm.fuelAmount} onChange={e => setNewEntryForm({...newEntryForm, fuelAmount: e.target.value})} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div><div className="space-y-1 col-span-2"><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.price}</label><input type="number" step="0.001" value={newEntryForm.pricePerLiter} onChange={e => setNewEntryForm({...newEntryForm, pricePerLiter: e.target.value})} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div></div><button type="submit" className={`w-full py-4 ${ecoBg} text-slate-900 rounded-xl font-bold uppercase text-xs tracking-widest mt-4`}>{txt.save}</button></form></div></div>)}
       
       {showImport && (<div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4"><div className={`${modalBg} border border-slate-200 dark:border-white/10 w-full max-w-md p-8 rounded-3xl relative text-center animate-in fade-in zoom-in-95 duration-200`}><button onClick={() => setShowImport(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-white"><X size={24}/></button><div onClick={() => fileInputRef.current?.click()} className={`border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-${ecoColor}-500 rounded-2xl p-10 cursor-pointer transition-colors group`}><Upload className="mx-auto mb-4 text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white" size={40} /><p className="text-xs font-bold uppercase text-slate-400">{txt.importDesc}</p></div><input type="file" ref={fileInputRef} onChange={(e) => { const file = e.target.files?.[0]; if(!file) return; const reader = new FileReader(); reader.onload = async (evt) => { try { const parsed = parseFuelCSV(evt.target?.result as string); setEntries(parsed); setShowImport(false); } catch(err) { alert("Error CSV"); } }; reader.readAsText(file); }} accept=".csv" className="hidden" /></div></div>)}
       
-      {showHelp && (<div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4"><div className={`${modalBg} border border-slate-200 dark:border-white/10 w-full max-w-lg p-6 rounded-3xl relative h-[80vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200`}><button onClick={() => setShowHelp(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-white"><X size={24}/></button><h3 className={`text-xl font-black uppercase ${modalText} mb-6`}>{txt.settingsTitle}</h3><form onSubmit={handleSaveVehicle} className="space-y-6"><div className="space-y-4"><div><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.registration}</label><input name="regDate" type="date" defaultValue={vehicleProfile?.registrationDate} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div><div><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.lastItv}</label><input name="lastItv" type="date" defaultValue={vehicleProfile?.lastItvDate} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} /></div><div className="grid grid-cols-2 gap-4"><div><label className="text-[10px] font-bold text-blue-500 uppercase">{txt.serviceKm}</label><input name="lastServiceKm" type="number" defaultValue={vehicleProfile?.lastServiceKm} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} /></div><div><label className="text-[10px] font-bold text-blue-500 uppercase">{txt.serviceDate}</label><input name="lastServiceDate" type="date" defaultValue={vehicleProfile?.lastServiceDate} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} /></div></div><div><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.vehicleType}</label><select name="category" defaultValue={vehicleProfile?.category || 'turismo'} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`}><option value="turismo">Turismo</option><option value="furgoneta">Furgoneta</option><option value="motocicleta">Moto</option></select></div></div><button type="submit" className={`w-full py-4 ${ecoBg} text-slate-900 rounded-xl font-bold uppercase text-xs`}>{txt.saveChanges}</button></form><div className="mt-8 pt-8 border-t border-slate-100 dark:border-white/5 text-center"><button onClick={handleClearAllData} className="text-red-500 text-[10px] font-bold uppercase hover:text-red-400">{txt.deleteAll}</button></div></div></div>)}
+      {showSettings && (<div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4"><div className={`${modalBg} border border-slate-200 dark:border-white/10 w-full max-w-lg p-6 rounded-3xl relative h-[80vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200`}><button onClick={() => setShowSettings(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-white"><X size={24}/></button><h3 className={`text-xl font-black uppercase ${modalText} mb-6`}>{txt.settingsTitle}</h3><form onSubmit={handleSaveVehicle} className="space-y-6"><div className="space-y-4"><div><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.registration}</label><input name="regDate" type="date" defaultValue={vehicleProfile?.registrationDate} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div><div><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.lastItv}</label><input name="lastItv" type="date" defaultValue={vehicleProfile?.lastItvDate} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} /></div><div className="grid grid-cols-2 gap-4"><div><label className="text-[10px] font-bold text-blue-500 uppercase">{txt.serviceKm}</label><input name="lastServiceKm" type="number" defaultValue={vehicleProfile?.lastServiceKm} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} /></div><div><label className="text-[10px] font-bold text-blue-500 uppercase">{txt.serviceDate}</label><input name="lastServiceDate" type="date" defaultValue={vehicleProfile?.lastServiceDate} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} /></div></div><div><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.vehicleType}</label><select name="category" defaultValue={vehicleProfile?.category || 'turismo'} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`}><option value="turismo">Turismo</option><option value="furgoneta">Furgoneta</option><option value="motocicleta">Moto</option></select></div></div><button type="submit" className={`w-full py-4 ${ecoBg} text-slate-900 rounded-xl font-bold uppercase text-xs`}>{txt.saveChanges}</button></form><div className="mt-8 pt-8 border-t border-slate-100 dark:border-white/5 text-center"><button onClick={handleClearAllData} className="text-red-500 text-[10px] font-bold uppercase hover:text-red-400">{txt.deleteAll}</button></div></div></div>)}
       
+      {showGuide && <GuideModal onClose={() => setShowGuide(false)} lang={lang} />}
+
       {showAnnualStats && (<div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4"><div className={`${modalBg} border border-slate-200 dark:border-white/10 w-full max-w-lg p-6 rounded-3xl relative h-[60vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200`}><button onClick={() => setShowAnnualStats(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-white"><X size={24}/></button><h3 className={`text-xl font-black uppercase ${modalText} mb-6 text-center`}>{txt.annualStats}</h3><div className="text-center mb-8"><p className="text-[10px] font-bold text-slate-500 uppercase">Media por Año</p><p className={`text-3xl font-black ${modalText}`}>{annualStats.avgKm.toLocaleString(undefined, { maximumFractionDigits: 0 })} <span className="text-sm text-slate-500">KM</span></p></div><div className="space-y-4">{annualStats.years.map(({ year, totalKm }) => (<div key={year} className="space-y-1"><div className="flex justify-between text-xs font-bold text-slate-400"><span>{year}</span><span>{totalKm.toLocaleString()} km</span></div><div className="h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-pink-500" style={{ width: `${(totalKm / annualStats.maxYearKm) * 100}%` }} /></div></div>))}</div></div></div>)}
     </div>
   );
