@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
-  Upload, Zap, Activity, Wrench, X, RefreshCw, Plus, 
+  Upload, Zap, Activity, Wrench, X, Plus, 
   Euro, Navigation, Trash2, Fuel, TrendingUp, 
-  Database, Lock, Download, LogOut, Smartphone, ShieldCheck, 
-  AlertCircle, Calendar, Sun, Moon, Mail, FileText, Globe, Settings, AlertTriangle, MapPin, Car, Info, BarChart3, Briefcase, Share2, LayoutDashboard, History, MessageSquare, HelpCircle, FileInput
+  Database, Lock, Download, LogOut, ShieldCheck, 
+  AlertCircle, Calendar, Sun, Moon, FileText, Globe, Settings, MapPin, Car, Info, BarChart3, Briefcase, Share2, LayoutDashboard, History, HelpCircle
 } from 'lucide-react';
 
 // --- IMPORTS ---
@@ -22,21 +22,20 @@ const VEHICLE_KEY = 'fuelmaster_vehicle';
 const THEME_KEY = 'fuelmaster_theme';
 const LANG_KEY = 'fuelmaster_lang';
 
-type ViewType = 'stats' | 'dashboard' | 'history' | 'tools';
+// Reducimos las vistas principales a 3
+type ViewType = 'stats' | 'dashboard' | 'garage';
 
 // --- DICCIONARIO UI LOCAL ---
 const uiText = {
   es: {
-    toolsTitle: "Panel de Gestión",
-    toolsDesc: "Importación, Exportación y Backups",
-    importData: "Importar Datos",
-    importDesc: "Cargar archivo CSV",
+    garageTitle: "Mi Garaje",
+    garageDesc: "Gestión y Herramientas",
+    historyBtn: "Historial Completo",
+    historyDesc: "Ver tabla de registros",
+    importData: "Importar CSV",
     exportCsv: "Exportar CSV",
-    exportCsvDesc: "Descargar datos crudos",
     reportPdf: "Reporte PDF",
-    reportPdfDesc: "Documento oficial",
-    backupEmail: "Backup Email",
-    backupDesc: "Enviar copia segura",
+    backupEmail: "Compartir / Backup",
     annualStats: "Analítica Anual",
     annualDesc: "Desglose por años",
     nextService: "Próxima Revisión",
@@ -45,17 +44,19 @@ const uiText = {
     time: "Tiempo",
     days: "DÍAS",
     lifeConsumed: "vida útil consumida",
-    manageProfile: "Gestionar Perfil",
+    manageProfile: "Ajustes Coche",
     configMaint: "Configura tu mantenimiento",
     compare: "Comparar",
     hide: "Ocultar",
-    newReportTitle: "Nuevo Reporte",
+    newReportTitle: "Nuevo Repostaje",
     date: "Fecha",
     currentKm: "Km Actuales",
     liters: "Litros",
     price: "Precio €/L",
     save: "Guardar",
-    settingsTitle: "Ajustes & Perfil",
+    settingsTitle: "Perfil del Vehículo",
+    brand: "Marca",
+    model: "Modelo",
     registration: "Matriculación",
     lastItv: "Última ITV",
     serviceKm: "Km Revisión",
@@ -64,24 +65,23 @@ const uiText = {
     saveChanges: "Guardar Cambios",
     deleteAll: "Borrar todos los datos",
     navStats: "Resumen",
-    navDash: "Gráficos",
-    navHist: "Historial",
-    navTools: "Gestión",
+    navDash: "Analítica",
+    navGarage: "Garaje",
     avgYear: "Media Anual",
     helpTitle: "Guía de Uso",
-    close: "Cerrar"
+    close: "Cerrar",
+    brandPlaceholder: "Ej: Toyota",
+    modelPlaceholder: "Ej: Corolla"
   },
   en: {
-    toolsTitle: "Management Panel",
-    toolsDesc: "Import, Export & Backups",
-    importData: "Import Data",
-    importDesc: "Load CSV file",
+    garageTitle: "My Garage",
+    garageDesc: "Management & Tools",
+    historyBtn: "Full History",
+    historyDesc: "View logs table",
+    importData: "Import CSV",
     exportCsv: "Export CSV",
-    exportCsvDesc: "Download raw data",
     reportPdf: "PDF Report",
-    reportPdfDesc: "Official document",
-    backupEmail: "Email Backup",
-    backupDesc: "Send secure copy",
+    backupEmail: "Share / Backup",
     annualStats: "Annual Analytics",
     annualDesc: "Yearly breakdown",
     nextService: "Next Service",
@@ -90,7 +90,7 @@ const uiText = {
     time: "Time",
     days: "DAYS",
     lifeConsumed: "lifespan consumed",
-    manageProfile: "Manage Profile",
+    manageProfile: "Car Settings",
     configMaint: "Configure maintenance",
     compare: "Compare",
     hide: "Hide",
@@ -100,7 +100,9 @@ const uiText = {
     liters: "Liters",
     price: "Price €/L",
     save: "Save",
-    settingsTitle: "Settings & Profile",
+    settingsTitle: "Vehicle Profile",
+    brand: "Brand",
+    model: "Model",
     registration: "Registration Date",
     lastItv: "Last MOT/ITV",
     serviceKm: "Service Km",
@@ -109,12 +111,13 @@ const uiText = {
     saveChanges: "Save Changes",
     deleteAll: "Delete All Data",
     navStats: "Summary",
-    navDash: "Charts",
-    navHist: "History",
-    navTools: "Tools",
+    navDash: "Analytics",
+    navGarage: "Garage",
     avgYear: "Annual Avg",
     helpTitle: "User Guide",
-    close: "Close"
+    close: "Close",
+    brandPlaceholder: "Ex: Toyota",
+    modelPlaceholder: "Ex: Corolla"
   }
 };
 
@@ -122,16 +125,6 @@ const uiText = {
 // 0. COMPONENTE STATCARD 
 // ==========================================
 const StatCard = ({ label, value, unit, icon, color, trendData }: any) => {
-    // Calculamos tendencia simple
-    let TrendIcon = null;
-    let trendColor = "text-slate-400";
-    if (trendData && trendData.length >= 2) {
-        const current = trendData[trendData.length - 1];
-        const prev = trendData[trendData.length - 2];
-        if (current > prev) { TrendIcon = TrendingUp; trendColor = "text-red-500"; }
-        else if (current < prev) { TrendIcon = TrendingUp; trendColor = "text-emerald-500"; } 
-    }
-
     return (
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm relative overflow-hidden group">
             <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity ${color.replace('bg-', 'text-')}`}>
@@ -148,7 +141,6 @@ const StatCard = ({ label, value, unit, icon, color, trendData }: any) => {
                     <span className="text-2xl font-black text-slate-900 dark:text-white font-mono-prec tracking-tight">{value}</span>
                     <span className="text-[10px] font-bold text-slate-400">{unit}</span>
                 </div>
-                {/* Minigráfico de tendencia */}
                 {trendData && (
                     <div className="flex items-end gap-[2px] h-6 mt-3 opacity-50">
                         {trendData.map((d: number, i: number) => (
@@ -162,15 +154,14 @@ const StatCard = ({ label, value, unit, icon, color, trendData }: any) => {
 };
 
 // ==========================================
-// 1. BARRA DE NAVEGACIÓN
+// 1. BARRA DE NAVEGACIÓN (3 ITEMS)
 // ==========================================
 const BottomNavInternal = ({ activeView, onNavigate, lang }: { activeView: ViewType, onNavigate: (v: ViewType) => void, lang: 'es'|'en' }) => {
   const txt = uiText[lang];
   const navItems = [
-    { id: 'stats', label: txt.navStats, icon: <BarChart3 size={20} /> },
-    { id: 'dashboard', label: txt.navDash, icon: <LayoutDashboard size={20} /> },
-    { id: 'history', label: txt.navHist, icon: <History size={20} /> },
-    { id: 'tools', label: txt.navTools, icon: <Briefcase size={20} /> },
+    { id: 'stats', label: txt.navStats, icon: <Activity size={20} /> },
+    { id: 'dashboard', label: txt.navDash, icon: <BarChart3 size={20} /> },
+    { id: 'garage', label: txt.navGarage, icon: <Car size={20} /> },
   ];
 
   return (
@@ -186,7 +177,7 @@ const BottomNavInternal = ({ activeView, onNavigate, lang }: { activeView: ViewT
                 isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
               }`}
             >
-              {isActive && <span className="absolute top-0 w-8 h-0.5 bg-emerald-500 rounded-b-full shadow-[0_0_10px_rgba(16,185,129,0.5)]" />}
+              {isActive && <span className="absolute top-0 w-12 h-0.5 bg-emerald-500 rounded-b-full shadow-[0_0_10px_rgba(16,185,129,0.5)]" />}
               <div className={`transition-transform duration-300 ${isActive ? 'scale-110 -translate-y-0.5' : ''}`}>{item.icon}</div>
               <span className={`text-[9px] font-black uppercase tracking-wide transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-70'}`}>{item.label}</span>
             </button>
@@ -198,15 +189,18 @@ const BottomNavInternal = ({ activeView, onNavigate, lang }: { activeView: ViewT
 };
 
 // ==========================================
-// 2. VISTA RESUMEN
+// 2. VISTA RESUMEN (HOME) - RECUPERADA TARJETA ANUAL
 // ==========================================
-const StatsViewInternal = ({ stats, trends, t, annualStats, txt }: any) => (
-  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 sm:gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24">
+const StatsViewInternal = ({ stats, trends, t, txt, annualStats }: any) => (
+  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24">
     <StatCard label={String(t.consumption)} value={stats.avgConsumption.toFixed(2)} unit="L/100" icon={<Activity size={20}/>} color="bg-blue-500" trendData={trends.consumption} />
     <StatCard label={String(t.efficiency)} value={stats.avgKmPerLiter.toFixed(2)} unit="km/L" icon={<Zap size={20}/>} color="bg-emerald-500" trendData={trends.efficiency} />
     <StatCard label={String(t.avgPvp)} value={stats.avgPricePerLiter.toFixed(3)} unit="€/L" icon={<Euro size={20}/>} color="bg-amber-500" trendData={trends.pvp} />
     <StatCard label={String(t.totalCost)} value={stats.totalCost.toLocaleString('es-ES', { maximumFractionDigits: 0 })} unit="€" icon={<Database size={20}/>} color="bg-violet-500" trendData={trends.cost} />
+    
+    {/* Tarjeta Recuperada: Media Anual */}
     <StatCard label={txt.avgYear} value={annualStats.avgKm.toLocaleString('es-ES', { maximumFractionDigits: 0 })} unit="km/año" icon={<Calendar size={20}/>} color="bg-pink-500" trendData={null} />
+    
     <StatCard label={String(t.cost100)} value={stats.avgCostPer100Km.toFixed(2)} unit="€" icon={<TrendingUp size={20}/>} color="bg-rose-500" trendData={trends.cost100} />
     <StatCard label={String(t.liters)} value={stats.totalFuel.toFixed(0)} unit="L" icon={<Fuel size={20}/>} color="bg-indigo-500" trendData={trends.liters} />
     <StatCard label={String(t.odometer)} value={stats.lastOdometer.toLocaleString()} unit="km" icon={<Navigation size={20}/>} color="bg-slate-500" trendData={trends.odometer} />
@@ -214,53 +208,160 @@ const StatsViewInternal = ({ stats, trends, t, annualStats, txt }: any) => (
 );
 
 // ==========================================
-// 3. VISTA HISTORIAL
+// 3. VISTA GARAJE (CORREGIDA: INCLUYE AUTONOMÍA Y ANIMACIÓN COCHE)
 // ==========================================
-const HistoryViewInternal = ({ entries, onDelete, t }: any) => (
-  <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-white/5 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24">
-    <table className="w-full text-left">
-      <thead className="bg-slate-50 dark:bg-slate-900/50 text-[9px] font-black uppercase text-slate-500">
-        <tr><th className="px-6 py-4">{String(t.date)}</th><th className="px-6 py-4 text-right">Odo.</th><th className="px-6 py-4 text-right text-emerald-600 dark:text-emerald-500">L/100</th><th className="px-6 py-4 text-right">#</th></tr>
-      </thead>
-      <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-        {entries.slice().reverse().map((e: any) => (
-          <tr key={e.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-            <td className="px-6 py-4 text-xs font-bold text-slate-900 dark:text-white">{e.date}</td>
-            <td className="px-6 py-4 text-right text-xs font-bold text-slate-500 dark:text-slate-400 font-mono-prec">{e.kmFinal.toLocaleString()}</td>
-            <td className="px-6 py-4 text-right text-sm font-black text-emerald-600 dark:text-emerald-500 font-mono-prec">{e.consumption.toFixed(2)}</td>
-            <td className="px-6 py-4 text-right"><button onClick={() => onDelete(e.id)} className="text-red-500 opacity-50 hover:opacity-100"><Trash2 size={14}/></button></td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-);
-
-// ==========================================
-// 4. VISTA HERRAMIENTAS
-// ==========================================
-const ToolsViewInternal = ({ onImport, onExportCSV, onExportPDF, onBackupEmail, onAnnualStats, lang }: any) => {
-  const txt = uiText[lang as 'es'|'en'] || uiText.es;
-  const btnClass = "flex items-center gap-4 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-white/5 hover:border-emerald-500/50 p-5 rounded-2xl w-full text-left transition-all shadow-sm dark:shadow-none";
+const GarageViewInternal = ({ 
+    vehicleProfile, maint, itvDate, itvDays, isItvValid, getItvColor, getItvBg,
+    tripKm, setTripKm, tripFuel, tripCost, showComparison, setShowComparison,
+    estRange, avgRefill, carPos,
+    onImport, onExportCSV, onExportPDF, onBackupEmail, onShowHistory, onOpenSettings,
+    lang, ecoColor, ecoText, ecoBorder, txt, t 
+}: any) => {
   
+  const btnClass = "flex flex-col items-center justify-center bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-white/5 hover:border-emerald-500/50 p-4 rounded-2xl w-full text-center transition-all shadow-sm dark:shadow-none gap-2 active:scale-95";
+  
+  const brand = (vehicleProfile as any)?.brand || "Mi Coche";
+  const model = (vehicleProfile as any)?.model || "";
+
   return (
-    <div className="max-w-2xl mx-auto space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24">
-      <div className="text-center mb-6">
-          <h2 className="text-xl font-black italic uppercase text-slate-900 dark:text-white">{txt.toolsTitle}</h2>
-          <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">{txt.toolsDesc}</p>
-      </div>
+    <div className="max-w-xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24">
       
-      <button onClick={onImport} className={btnClass}><div className="w-10 h-10 bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 rounded-xl flex items-center justify-center"><Upload size={20} /></div><div><h3 className="font-bold text-slate-900 dark:text-white text-sm">{txt.importData}</h3><p className="text-[10px] text-slate-500">{txt.importDesc}</p></div></button>
-      <button onClick={onExportCSV} className={btnClass}><div className="w-10 h-10 bg-blue-500/10 text-blue-600 dark:text-blue-500 rounded-xl flex items-center justify-center"><FileText size={20} /></div><div><h3 className="font-bold text-slate-900 dark:text-white text-sm">{txt.exportCsv}</h3><p className="text-[10px] text-slate-500">{txt.exportCsvDesc}</p></div></button>
-      <button onClick={onExportPDF} className={btnClass}><div className="w-10 h-10 bg-violet-500/10 text-violet-600 dark:text-violet-500 rounded-xl flex items-center justify-center"><Download size={20} /></div><div><h3 className="font-bold text-slate-900 dark:text-white text-sm">{txt.reportPdf}</h3><p className="text-[10px] text-slate-500">{txt.reportPdfDesc}</p></div></button>
-      <button onClick={onBackupEmail} className={btnClass}><div className="w-10 h-10 bg-amber-500/10 text-amber-600 dark:text-amber-500 rounded-xl flex items-center justify-center"><Share2 size={20} /></div><div><h3 className="font-bold text-slate-900 dark:text-white text-sm">{txt.backupEmail}</h3><p className="text-[10px] text-slate-500">{txt.backupDesc}</p></div></button>
-      <button onClick={onAnnualStats} className={btnClass}><div className="w-10 h-10 bg-pink-500/10 text-pink-600 dark:text-pink-500 rounded-xl flex items-center justify-center"><BarChart3 size={20} /></div><div><h3 className="font-bold text-slate-900 dark:text-white text-sm">{txt.annualStats}</h3><p className="text-[10px] text-slate-500">{txt.annualDesc}</p></div></button>
+      {/* 1. FICHA DEL COCHE + MANTENIMIENTO */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-white/5 relative overflow-hidden">
+         <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none"><Car size={120} /></div>
+         <div className="relative z-10">
+            <div className="flex justify-between items-start mb-4">
+                <div>
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">{brand}</h2>
+                    <p className="text-sm font-bold text-slate-500 uppercase">{model}</p>
+                </div>
+                <button onClick={onOpenSettings} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                    <Settings size={20} className="text-slate-600 dark:text-slate-300"/>
+                </button>
+            </div>
+
+            <div className="space-y-3">
+                {/* ITV */}
+                {isItvValid && (
+                    <div className={`p-3 rounded-xl border flex items-center justify-between ${getItvBg(itvDays)}`}>
+                        <div>
+                            <p className="text-[9px] font-black uppercase opacity-70">ITV / MOT</p>
+                            <p className={`text-xs font-bold ${getItvColor(itvDays)}`}>Vence: {itvDate?.toLocaleDateString()}</p>
+                        </div>
+                        <div className="text-right">
+                             <p className={`text-lg font-black font-mono-prec ${getItvColor(itvDays)}`}>{itvDays} <span className="text-[9px] font-sans text-slate-500">días</span></p>
+                        </div>
+                    </div>
+                )}
+                
+                {/* Revisión */}
+                {maint ? (
+                     <div className={`p-3 rounded-xl border flex flex-col gap-2 ${maint.isUrgent ? 'bg-orange-500/10 border-orange-500/20' : 'bg-blue-500/10 border-blue-500/20'}`}>
+                         <div className="flex justify-between items-center">
+                             <p className="text-[9px] font-black uppercase opacity-70">{txt.nextService}</p>
+                             <p className="text-[9px] font-bold opacity-80">{maint.nextDate.toLocaleDateString()}</p>
+                         </div>
+                         <div className="w-full h-2 bg-slate-200 dark:bg-slate-900/30 rounded-full overflow-hidden">
+                             <div className={`h-full ${maint.isUrgent ? 'bg-orange-500' : 'bg-blue-500'}`} style={{ width: `${maint.servicePercent}%` }}></div>
+                         </div>
+                         <div className="flex justify-between text-[9px] font-bold opacity-80">
+                             <span>{maint.kmRemaining.toLocaleString()} km rest.</span>
+                             <span>{maint.daysRemaining} días rest.</span>
+                         </div>
+                     </div>
+                ) : (
+                    <button onClick={onOpenSettings} className="w-full py-3 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-400 uppercase hover:border-blue-500 hover:text-blue-500 transition-colors">
+                        {txt.configMaint}
+                    </button>
+                )}
+            </div>
+         </div>
+      </div>
+
+      {/* 2. AUTONOMÍA INTELIGENTE */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-white/5 p-6 border-l-4 border-indigo-500 flex flex-col gap-4">
+        <h3 className="text-[10px] font-black uppercase flex items-center gap-2 text-slate-900 dark:text-white">
+            <Fuel size={14} className="text-indigo-500" /> {String(t.theoreticalRange)}
+        </h3>
+        <div className="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 flex flex-col items-center">
+            <p className="text-[8px] font-black text-slate-500 uppercase mb-3 tracking-widest">{String(t.fullTankRange)}</p>
+            <div className="flex items-baseline gap-2">
+                <span className="text-4xl font-black font-mono-prec text-slate-900 dark:text-white">{estRange.toFixed(0)}</span>
+                <span className="text-[10px] font-bold text-indigo-400">KM</span>
+            </div>
+            <div className="w-full h-2 bg-slate-200 dark:bg-slate-900/50 rounded-full mt-5 overflow-hidden border border-slate-200 dark:border-white/5 relative">
+                <div className="h-full bg-gradient-to-r from-indigo-600 to-indigo-400" style={{ width: `${Math.min((avgRefill/43)*100, 100)}%` }}></div>
+            </div>
+        </div>
+      </div>
+
+      {/* 3. CALCULADORA DE TRAYECTO */}
+      <div className={`bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-white/5 p-6 border-l-4 ${ecoBorder}`}>
+          <h3 className={`text-[10px] font-black uppercase flex items-center gap-2 text-slate-900 dark:text-white mb-4`}><MapPin size={14} className={ecoText} /> Calculadora de Viaje</h3>
+          
+          <div className="relative h-8 w-full bg-slate-100 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-white/5 overflow-hidden flex items-center px-4 mb-4">
+            <div className="absolute left-0 h-[1px] w-full border-t border-dashed border-slate-400/50 dark:border-slate-700/50"></div>
+            <div className="relative z-10 transition-all duration-500 ease-out" style={{ transform: `translateX(calc(${carPos}% - 24px))` }}>
+                <Car size={18} className={`${ecoText} drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]`} />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="relative">
+                <input type="number" placeholder={String(t.tripDistance)} value={tripKm} onChange={(e) => setTripKm(e.target.value)} className={`w-full bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white border rounded-xl py-3 px-4 text-xs font-bold outline-none focus:border-${ecoColor}-500 font-mono-prec`} />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-500">KM</span>
+            </div>
+            {tripKm && (
+                <div className="grid grid-cols-2 gap-2 animate-in slide-in-from-top-2">
+                    <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-white/5">
+                        <p className="text-[7px] font-black text-slate-500 uppercase mb-1">{String(t.estFuel)}</p>
+                        <p className={`text-sm font-black ${ecoText} font-mono-prec`}>{tripFuel.toFixed(1)} <span className="text-[8px] font-sans">L</span></p>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-white/5">
+                        <p className="text-[7px] font-black text-slate-500 uppercase mb-1">{String(t.estCost)}</p>
+                        <p className="text-sm font-black text-slate-900 dark:text-white font-mono-prec">{tripCost.toFixed(2)} <span className="text-[8px] font-sans">€</span></p>
+                    </div>
+                </div>
+            )}
+          </div>
+      </div>
+
+      {/* 4. GRID DE HERRAMIENTAS */}
+      <div className="grid grid-cols-2 gap-3">
+          <button onClick={onShowHistory} className={`${btnClass} col-span-2 flex-row gap-3 border-blue-200 dark:border-blue-900/30 bg-blue-50/50 dark:bg-blue-900/10`}>
+              <History size={20} className="text-blue-600 dark:text-blue-400"/>
+              <div className="text-left">
+                  <h3 className="font-bold text-slate-900 dark:text-white text-sm">{txt.historyBtn}</h3>
+                  <p className="text-[9px] text-slate-500">{txt.historyDesc}</p>
+              </div>
+          </button>
+          
+          <button onClick={onImport} className={btnClass}>
+              <Upload size={20} className="text-emerald-500"/>
+              <span className="font-bold text-slate-700 dark:text-slate-300 text-xs">{txt.importData}</span>
+          </button>
+          
+          <button onClick={onExportCSV} className={btnClass}>
+              <FileText size={20} className="text-blue-500"/>
+              <span className="font-bold text-slate-700 dark:text-slate-300 text-xs">{txt.exportCsv}</span>
+          </button>
+          
+          <button onClick={onExportPDF} className={btnClass}>
+              <Download size={20} className="text-violet-500"/>
+              <span className="font-bold text-slate-700 dark:text-slate-300 text-xs">{txt.reportPdf}</span>
+          </button>
+          
+          <button onClick={onBackupEmail} className={btnClass}>
+              <Share2 size={20} className="text-amber-500"/>
+              <span className="font-bold text-slate-700 dark:text-slate-300 text-xs">{txt.backupEmail}</span>
+          </button>
+      </div>
     </div>
   );
 };
 
 // ==========================================
-// 5. NUEVA GUÍA DE AYUDA (MODAL INTERNO)
+// 4. NUEVA GUÍA DE AYUDA (MODAL INTERNO)
 // ==========================================
 const GuideModal = ({ onClose, lang }: { onClose: () => void, lang: 'es'|'en' }) => {
   const isEs = lang === 'es';
@@ -269,39 +370,22 @@ const GuideModal = ({ onClose, lang }: { onClose: () => void, lang: 'es'|'en' })
 
   const content = {
     title: isEs ? "Guía FuelMaster Pro" : "FuelMaster Pro Guide",
-    
-    // Mantenimiento
     maintTitle: isEs ? "Mantenimiento & ITV" : "Maintenance & MOT",
     maintDesc: isEs 
        ? "Revisiones: El sistema usa la regla de 'lo que ocurra antes': 15.000 km o 1 año desde el último servicio."
        : "Service: System uses 'whichever comes first': 15,000 km or 1 year since last service.",
-    
-    // ITV - NUEVA EXPLICACIÓN DETALLADA
     itvDesc: isEs 
        ? "Control ITV: Basado en la normativa española (4-2-1 años). Introduce la fecha de matriculación y categoría en Ajustes; la App calculará la fecha legal automáticamente."
        : "MOT/ITV: Based on local regulations (4-2-1 years). Enter registration date & category in Settings; App calculates deadline automatically.",
-    
     colors: isEs 
        ? "🎨 Semáforo: 🟢 Todo bien | 🟠 Aviso (Menos de 1 mes o 1000km) | 🔴 Vencido."
        : "🎨 Status: 🟢 All good | 🟠 Warning (< 1 month or 1000km) | 🔴 Expired.",
-
-    // Datos
     dataTitle: isEs ? "Datos y Backups" : "Data & Backups",
-    
-    // Backup Email - NUEVA EXPLICACIÓN DETALLADA
     emailText: isEs
        ? "📧 Backup Email: Abre el menú nativo de 'Compartir' de tu móvil para enviar el archivo CSV por Correo, WhatsApp, Telegram o guardarlo en Drive."
        : "📧 Email Backup: Opens native 'Share' menu to send CSV via Email, WhatsApp, Telegram or save to Drive.",
-    
-    csvText: isEs 
-       ? "📂 Exportar CSV: Descarga directa del archivo de datos para Excel."
-       : "📂 Export CSV: Direct download of data file for Excel.",
-    
-    pdfText: isEs
-       ? "📄 Reporte PDF: Genera un informe visual oficial con gráficas y totales."
-       : "📄 PDF Report: Generates an official visual report with charts and totals.",
-    
-    // Registro
+    csvText: isEs ? "📂 Exportar CSV: Descarga directa del archivo de datos para Excel." : "📂 Export CSV: Direct download of data file for Excel.",
+    pdfText: isEs ? "📄 Reporte PDF: Genera un informe visual oficial con gráficas y totales." : "📄 PDF Report: Generates an official visual report with charts and totals.",
     accountTitle: isEs ? "Sincronización" : "Synchronization",
     accountDesc: isEs
        ? "Modo Invitado = Datos solo en este móvil. Crea una cuenta para tener copia en la nube y acceder desde varios dispositivos."
@@ -311,61 +395,16 @@ const GuideModal = ({ onClose, lang }: { onClose: () => void, lang: 'es'|'en' })
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className={`${modalBg} rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto border border-slate-200 dark:border-white/10 animate-in fade-in zoom-in-95 duration-200`}>
-         
          <div className="sticky top-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center z-10">
-            <h2 className={`text-xl font-black italic uppercase ${modalText} flex items-center gap-2`}>
-               <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-1.5 rounded-lg"><HelpCircle size={20} /></span>
-               {content.title}
-            </h2>
+            <h2 className={`text-xl font-black italic uppercase ${modalText} flex items-center gap-2`}><span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-1.5 rounded-lg"><HelpCircle size={20} /></span>{content.title}</h2>
             <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500"><X size={20} /></button>
          </div>
-
          <div className="p-6 space-y-8">
-            {/* Mantenimiento */}
-            <div className="space-y-3">
-               <h3 className="font-bold text-slate-500 dark:text-slate-400 uppercase text-xs tracking-wider border-b border-slate-100 dark:border-white/5 pb-2">{content.maintTitle}</h3>
-               <div className="flex gap-4">
-                  <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-xl h-fit text-orange-600 dark:text-orange-400"><Wrench size={24}/></div>
-                  <div className="space-y-3">
-                     <p className={`text-xs ${modalText}`}>{content.maintDesc}</p>
-                     <p className={`text-xs font-medium text-blue-600 dark:text-blue-400`}>{content.itvDesc}</p>
-                     <div className="text-[10px] font-bold bg-slate-50 dark:bg-slate-800 p-2 rounded border border-slate-100 dark:border-white/5 text-slate-600 dark:text-slate-300">{content.colors}</div>
-                  </div>
-               </div>
-            </div>
-
-            {/* Datos */}
-            <div className="space-y-3">
-               <h3 className="font-bold text-slate-500 dark:text-slate-400 uppercase text-xs tracking-wider border-b border-slate-100 dark:border-white/5 pb-2">{content.dataTitle}</h3>
-               <div className="grid gap-3">
-                  <div className="flex items-start gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-white/5">
-                     <Share2 size={18} className="text-amber-500 mt-0.5 shrink-0"/>
-                     <p className={`text-xs ${modalText}`}>{content.emailText}</p>
-                  </div>
-                  <div className="flex items-start gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-white/5">
-                     <FileText size={18} className="text-blue-500 mt-0.5 shrink-0"/>
-                     <p className={`text-xs ${modalText}`}>{content.csvText}</p>
-                  </div>
-                  <div className="flex items-start gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-white/5">
-                     <Download size={18} className="text-violet-500 mt-0.5 shrink-0"/>
-                     <p className={`text-xs ${modalText}`}>{content.pdfText}</p>
-                  </div>
-               </div>
-            </div>
-
-             {/* Cuenta */}
-             <div className="space-y-3">
-               <h3 className="font-bold text-slate-500 dark:text-slate-400 uppercase text-xs tracking-wider border-b border-slate-100 dark:border-white/5 pb-2">{content.accountTitle}</h3>
-               <div className="flex gap-4">
-                  <div className="bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-xl h-fit text-emerald-600 dark:text-emerald-400"><Zap size={24}/></div>
-                  <p className={`text-xs ${modalText}`}>{content.accountDesc}</p>
-               </div>
-            </div>
+            <div className="space-y-3"><h3 className="font-bold text-slate-500 dark:text-slate-400 uppercase text-xs tracking-wider border-b border-slate-100 dark:border-white/5 pb-2">{content.maintTitle}</h3><div className="flex gap-4"><div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-xl h-fit text-orange-600 dark:text-orange-400"><Wrench size={24}/></div><div className="space-y-3"><p className={`text-xs ${modalText}`}>{content.maintDesc}</p><p className={`text-xs font-medium text-blue-600 dark:text-blue-400`}>{content.itvDesc}</p><div className="text-[10px] font-bold bg-slate-50 dark:bg-slate-800 p-2 rounded border border-slate-100 dark:border-white/5 text-slate-600 dark:text-slate-300">{content.colors}</div></div></div></div>
+            <div className="space-y-3"><h3 className="font-bold text-slate-500 dark:text-slate-400 uppercase text-xs tracking-wider border-b border-slate-100 dark:border-white/5 pb-2">{content.dataTitle}</h3><div className="grid gap-3"><div className="flex items-start gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-white/5"><Share2 size={18} className="text-amber-500 mt-0.5 shrink-0"/><p className={`text-xs ${modalText}`}>{content.emailText}</p></div><div className="flex items-start gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-white/5"><FileText size={18} className="text-blue-500 mt-0.5 shrink-0"/><p className={`text-xs ${modalText}`}>{content.csvText}</p></div><div className="flex items-start gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-white/5"><Download size={18} className="text-violet-500 mt-0.5 shrink-0"/><p className={`text-xs ${modalText}`}>{content.pdfText}</p></div></div></div>
+             <div className="space-y-3"><h3 className="font-bold text-slate-500 dark:text-slate-400 uppercase text-xs tracking-wider border-b border-slate-100 dark:border-white/5 pb-2">{content.accountTitle}</h3><div className="flex gap-4"><div className="bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-xl h-fit text-emerald-600 dark:text-emerald-400"><Zap size={24}/></div><p className={`text-xs ${modalText}`}>{content.accountDesc}</p></div></div>
          </div>
-
-         <div className="sticky bottom-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 border-t border-slate-100 dark:border-white/5 flex justify-end">
-            <button onClick={onClose} className="px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold uppercase text-xs rounded-xl hover:opacity-90">{uiText[lang].close}</button>
-         </div>
+         <div className="sticky bottom-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 border-t border-slate-100 dark:border-white/5 flex justify-end"><button onClick={onClose} className="px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold uppercase text-xs rounded-xl hover:opacity-90">{uiText[lang].close}</button></div>
       </div>
     </div>
   );
@@ -401,9 +440,9 @@ const App: React.FC = () => {
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showNewEntry, setShowNewEntry] = useState(false);
-  const [showSettings, setShowSettings] = useState(false); // Ajustes de coche
-  const [showGuide, setShowGuide] = useState(false);       // Guía de Ayuda
-  const [showAnnualStats, setShowAnnualStats] = useState(false);
+  const [showSettings, setShowSettings] = useState(false); 
+  const [showGuide, setShowGuide] = useState(false);       
+  const [showHistory, setShowHistory] = useState(false); // Modal Historial
   const [newEntryForm, setNewEntryForm] = useState({ date: new Date().toISOString().split('T')[0], kmFinal: '', fuelAmount: '', pricePerLiter: '' });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -444,7 +483,17 @@ const App: React.FC = () => {
       if (entriesData) setEntries(entriesData.map(d => ({ id: String(d.id), date: String(d.date), kmInicial: Number(d.km_inicial), kmFinal: Number(d.km_final), fuelAmount: Number(d.fuel_amount), pricePerLiter: Number(d.price_per_liter), cost: Number(d.cost), distancia: Number(d.distancia), consumption: 0, kmPerLiter: 0 })));
       const { data: profileData } = await supabase.from('vehicle_profiles').select('*').eq('user_id', userId).single();
       if (profileData) {
-        const profile: VehicleProfile = { registrationDate: profileData.registration_date, lastItvDate: profileData.last_itv_date, category: profileData.category as VehicleCategory, lastServiceKm: profileData.last_service_km, lastServiceDate: profileData.last_service_date };
+        // En supabase guardamos marca/modelo si extendiéramos, por ahora lo cargamos y guardamos en profile local
+        const profile: VehicleProfile = { 
+            registrationDate: profileData.registration_date, 
+            lastItvDate: profileData.last_itv_date, 
+            category: profileData.category as VehicleCategory, 
+            lastServiceKm: profileData.last_service_km, 
+            lastServiceDate: profileData.last_service_date,
+            // Truco: Supabase no tiene marca/modelo aún, usaremos localStorage para persistir esto localmente
+            brand: (JSON.parse(localStorage.getItem(VEHICLE_KEY) || '{}')).brand || 'Mi Coche',
+            model: (JSON.parse(localStorage.getItem(VEHICLE_KEY) || '{}')).model || ''
+        } as any;
         setVehicleProfile(profile); localStorage.setItem(VEHICLE_KEY, JSON.stringify(profile));
       }
     } catch (e) { loadLocalData(); }
@@ -468,8 +517,19 @@ const App: React.FC = () => {
 
   const handleSaveVehicle = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); const fd = new FormData(e.currentTarget);
-    const profile: VehicleProfile = { registrationDate: fd.get('regDate') as string, lastItvDate: fd.get('lastItv') as string || undefined, category: fd.get('category') as VehicleCategory, lastServiceKm: Number(fd.get('lastServiceKm')) || undefined, lastServiceDate: fd.get('lastServiceDate') as string || undefined };
+    const profile: VehicleProfile = { 
+        registrationDate: fd.get('regDate') as string, 
+        lastItvDate: fd.get('lastItv') as string || undefined, 
+        category: fd.get('category') as VehicleCategory, 
+        lastServiceKm: Number(fd.get('lastServiceKm')) || undefined, 
+        lastServiceDate: fd.get('lastServiceDate') as string || undefined,
+        // Nuevos campos
+        brand: fd.get('brand') as string,
+        model: fd.get('model') as string
+    } as any;
     setVehicleProfile(profile); localStorage.setItem(VEHICLE_KEY, JSON.stringify(profile));
+    
+    // Solo subimos los campos standard a Supabase para no romper
     if (session?.user?.id && isSupabaseConfigured) await supabase.from('vehicle_profiles').upsert({ user_id: session.user.id, registration_date: profile.registrationDate, last_itv_date: profile.lastItvDate, category: profile.category, last_service_km: profile.lastServiceKm, last_service_date: profile.lastServiceDate });
     setShowSettings(false);
   };
@@ -535,10 +595,9 @@ const App: React.FC = () => {
         <div className="flex items-center gap-3">
             <button onClick={() => setLang(lang === 'es' ? 'en' : 'es')} className="text-slate-400 hover:text-slate-900 dark:hover:text-white"><Globe size={20} /></button>
             <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="text-slate-400 hover:text-slate-900 dark:hover:text-white">{theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}</button>
-            {/* NUEVO BOTÓN GUÍA */}
+            {/* GUÍA */}
             <button onClick={() => setShowGuide(true)} className="text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400"><HelpCircle size={20}/></button>
-            {/* BOTÓN SETTINGS (Ahora solo para ajustes de coche) */}
-            <button onClick={() => setShowSettings(true)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white"><Settings size={20}/></button>
+            {/* LOGOUT */}
             <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="text-red-500 hover:text-red-600 dark:hover:text-red-400"><LogOut size={20} /></button>
         </div>
       </nav>
@@ -546,48 +605,108 @@ const App: React.FC = () => {
       <main className="max-w-7xl mx-auto px-4 py-6">
         {stats ? (
           <>
-            {view === 'stats' && <StatsViewInternal stats={stats} trends={trends} t={t} annualStats={annualStats} txt={txt} />}
+            {view === 'stats' && <StatsViewInternal stats={stats} trends={trends} t={t} txt={txt} annualStats={annualStats} />}
             
             {view === 'dashboard' && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24">
-                <div className="lg:col-span-2 space-y-8">
-                    {/* Charts con fondo blanco en light mode */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24">
+                  {/* Gráficos Visuales */}
+                  <div className="space-y-8">
                     <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-10 shadow-sm border border-slate-200 dark:border-white/5"><FuelChart data={calculatedEntries} type="consumption" /></div>
                     <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-10 shadow-sm border border-slate-200 dark:border-white/5"><FuelChart data={calculatedEntries} type="efficiency" /></div>
-                </div>
-                <div className="space-y-6">
-                   <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-white/5 p-6 border-l-4 border-indigo-500 flex flex-col gap-4"><h3 className="text-[10px] font-black uppercase flex items-center gap-2 text-slate-900 dark:text-white"><Fuel size={14} className="text-indigo-500" /> {String(t.theoreticalRange)}</h3><div className="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 flex flex-col items-center"><p className="text-[8px] font-black text-slate-500 uppercase mb-3 tracking-widest">{String(t.fullTankRange)}</p><div className="flex items-baseline gap-2"><span className="text-4xl font-black font-mono-prec text-slate-900 dark:text-white">{estRange.toFixed(0)}</span><span className="text-[10px] font-bold text-indigo-400">KM</span></div><div className="w-full h-2 bg-slate-200 dark:bg-slate-900/50 rounded-full mt-5 overflow-hidden border border-slate-200 dark:border-white/5 relative"><div className="h-full bg-gradient-to-r from-indigo-600 to-indigo-400" style={{ width: `${Math.min((avgRefill/43)*100, 100)}%` }}></div></div></div></div>
-                   
-                   <div className={`bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-white/5 p-6 border-l-4 ${ecoBorder} flex flex-col gap-4`}><h3 className={`text-[10px] font-black uppercase flex items-center gap-2 text-slate-900 dark:text-white`}><MapPin size={14} className={ecoText} /> {String(t.tripCalculator)}</h3><div className="relative h-8 w-full bg-slate-100 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-white/5 overflow-hidden flex items-center px-4"><div className="absolute left-0 h-[1px] w-full border-t border-dashed border-slate-400/50 dark:border-slate-700/50"></div><div className="relative z-10 transition-all duration-500 ease-out" style={{ transform: `translateX(calc(${carPos}% - 24px))` }}><Car size={18} className={`${ecoText} drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]`} /></div></div><div className="space-y-3"><div className="relative"><input type="number" placeholder={String(t.tripDistance)} value={tripKm} onChange={(e) => setTripKm(e.target.value)} className={`w-full ${modalInput} border rounded-xl py-3 px-4 text-xs font-bold outline-none focus:border-${ecoColor}-500 font-mono-prec`} /><span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-500">KM</span></div>{tripKm && (<><div className="grid grid-cols-2 gap-2"><div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-white/5"><p className="text-[7px] font-black text-slate-500 uppercase mb-1">{String(t.estFuel)}</p><p className={`text-sm font-black ${ecoText} font-mono-prec`}>{tripFuel.toFixed(1)} <span className="text-[8px] font-sans">L</span></p></div><div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-white/5"><p className="text-[7px] font-black text-slate-500 uppercase mb-1">{String(t.estCost)}</p><p className="text-sm font-black text-slate-900 dark:text-white font-mono-prec">{tripCost.toFixed(2)} <span className="text-[8px] font-sans">€</span></p></div></div><button onClick={() => setShowComparison(!showComparison)} className={`w-full py-3 bg-${ecoColor}-500/10 hover:bg-${ecoColor}-500/20 ${ecoText} text-[8px] font-black uppercase rounded-lg border ${ecoBorder}/20 transition-all flex items-center justify-center gap-2`}><TrendingUp size={12} /> {showComparison ? txt.hide : txt.compare}</button></>)}</div></div>
-                   
-                   <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-white/5 p-6 border-l-4 border-blue-500 flex flex-col gap-6"><h3 className="text-[10px] font-black uppercase flex items-center gap-2 text-slate-900 dark:text-white"><Settings size={14} className="text-blue-500" /> {String(t.vehicleProfile)}</h3><div className="space-y-4">{isItvValid && (<div className={`p-4 rounded-xl border transition-all ${getItvBg(itvDays)}`}><p className="text-[8px] font-bold text-slate-500 uppercase">{String(t.itvRemaining)}</p><div className="flex items-center gap-3"><p className={`text-2xl font-black font-mono-prec ${getItvColor(itvDays)}`}>{itvDays}</p>{itvDays <= 30 && <AlertCircle size={16} className={getItvColor(itvDays)} />}</div><p className="text-[8px] font-black uppercase text-slate-500">Vencimiento: {itvDate?.toLocaleDateString()}</p></div>)}{maint ? (<div className={`p-4 rounded-xl border transition-all ${maint.isUrgent ? 'bg-orange-500/10 border-orange-500/20' : 'bg-blue-500/10 border-blue-500/20'}`}><div className="flex justify-between items-start mb-3"><p className="text-[8px] font-bold text-slate-500 uppercase">{txt.nextService}</p><div className="text-right"><p className="text-[8px] font-black text-slate-400 uppercase">{txt.deadline}</p><p className="text-[10px] font-black text-slate-900 dark:text-white">{maint.nextDate.toLocaleDateString()}</p></div></div><div className="w-full h-3 bg-slate-200 dark:bg-slate-900/50 rounded-full mb-4 overflow-hidden border border-slate-200 dark:border-white/5 relative"><div className={`h-full transition-all duration-1000 ease-out ${maint.isUrgent ? 'bg-orange-500' : 'bg-blue-500'}`} style={{ width: `${maint.servicePercent}%` }}></div></div><div className="grid grid-cols-2 gap-3 mb-3"><div className={`p-2 rounded-lg border ${!maint.isTimeLimit ? 'bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-white/10' : 'bg-slate-50 dark:bg-slate-900/30 border-transparent'}`}><p className="text-[7px] text-slate-500 uppercase font-bold mb-1">{txt.distance}</p><p className={`text-lg font-black font-mono-prec ${!maint.isTimeLimit ? (maint.isUrgent ? 'text-orange-500' : 'text-blue-500 dark:text-blue-400') : 'text-slate-400 dark:text-slate-300'}`}>{maint.kmRemaining.toLocaleString()}<span className="text-[8px] font-sans text-slate-500 ml-1">KM</span></p></div><div className={`p-2 rounded-lg border ${maint.isTimeLimit ? 'bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-white/10' : 'bg-slate-50 dark:bg-slate-900/30 border-transparent'}`}><p className="text-[7px] text-slate-500 uppercase font-bold mb-1">{txt.time}</p><p className={`text-lg font-black font-mono-prec ${maint.isTimeLimit ? (maint.isUrgent ? 'text-orange-500' : 'text-blue-500 dark:text-blue-400') : 'text-slate-400 dark:text-slate-300'}`}>{maint.daysRemaining}<span className="text-[8px] font-sans text-slate-500 ml-1">{txt.days}</span></p></div></div><p className="text-[8px] text-slate-500 uppercase font-black text-center">{maint.servicePercent.toFixed(0)}% {txt.lifeConsumed}</p></div>) : <div className="p-4 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/5"><p className="text-[8px] font-black text-slate-500 uppercase text-center">{txt.configMaint}</p></div>}<button onClick={() => setShowSettings(true)} className="w-full mt-2 py-3 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[8px] font-black uppercase rounded-lg border border-blue-500/20"><Settings size={12} className="inline mr-2"/>{txt.manageProfile}</button></div></div>
-                </div>
+                  </div>
+                  
+                  {/* Tarjeta Analítica Anual (Insertada aquí) */}
+                  <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-white/5 h-fit">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="bg-pink-500/10 p-3 rounded-xl text-pink-500"><BarChart3 size={24}/></div>
+                            <div>
+                                <h3 className="font-black uppercase text-slate-900 dark:text-white text-lg">{txt.annualStats}</h3>
+                                <p className="text-xs text-slate-500">{txt.annualDesc}</p>
+                            </div>
+                        </div>
+                        <div className="text-center mb-8 border-b border-slate-100 dark:border-white/5 pb-8">
+                            <p className="text-[10px] font-bold text-slate-500 uppercase">{txt.avgYear}</p>
+                            <p className={`text-4xl font-black ${modalText}`}>{annualStats.avgKm.toLocaleString(undefined, { maximumFractionDigits: 0 })} <span className="text-sm text-slate-500">KM</span></p>
+                        </div>
+                        <div className="space-y-4">
+                            {annualStats.years.map(({ year, totalKm }) => (
+                                <div key={year} className="space-y-1">
+                                    <div className="flex justify-between text-xs font-bold text-slate-400"><span>{year}</span><span>{totalKm.toLocaleString()} km</span></div>
+                                    <div className="h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-pink-500" style={{ width: `${(totalKm / annualStats.maxYearKm) * 100}%` }} /></div>
+                                </div>
+                            ))}
+                        </div>
+                  </div>
               </div>
             )}
             
-            {view === 'history' && <HistoryViewInternal entries={calculatedEntries} onDelete={deleteEntry} t={t} />}
-            
-            {view === 'tools' && <ToolsViewInternal onImport={() => setShowImport(true)} onExportCSV={() => downloadCSV(calculatedEntries, 'FuelMaster_Backup.csv')} onExportPDF={() => exportToPDF(stats, calculatedEntries, vehicleProfile, maint)} onBackupEmail={handleShareCSV} onAnnualStats={() => setShowAnnualStats(true)} lang={lang} />}
+            {view === 'garage' && (
+                <GarageViewInternal 
+                    vehicleProfile={vehicleProfile} maint={maint} itvDate={itvDate} itvDays={itvDays} isItvValid={isItvValid}
+                    getItvColor={getItvColor} getItvBg={getItvBg}
+                    tripKm={tripKm} setTripKm={setTripKm} tripFuel={tripFuel} tripCost={tripCost}
+                    showComparison={showComparison} setShowComparison={setShowComparison}
+                    estRange={estRange} avgRefill={avgRefill} carPos={carPos}
+                    onImport={() => setShowImport(true)} onExportCSV={() => downloadCSV(calculatedEntries, 'FuelMaster_Backup.csv')}
+                    onExportPDF={() => exportToPDF(stats, calculatedEntries, vehicleProfile, maint)}
+                    onBackupEmail={handleShareCSV} onShowHistory={() => setShowHistory(true)}
+                    onOpenSettings={() => setShowSettings(true)}
+                    lang={lang} ecoColor={ecoColor} ecoText={ecoText} ecoBorder={ecoBorder} txt={txt} t={t}
+                />
+            )}
           </>
         ) : (
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6"><div className="w-20 h-20 bg-slate-200 dark:bg-slate-900 rounded-full flex items-center justify-center animate-pulse"><Zap size={40} className="text-slate-400 dark:text-slate-700" /></div><p className="text-slate-500 font-bold uppercase tracking-widest text-sm">Sin datos registrados</p><div className="flex gap-4"><button onClick={() => setShowImport(true)} className="px-6 py-3 bg-slate-800 text-white rounded-xl font-bold text-xs uppercase flex items-center gap-2"><Upload size={16}/> Importar</button><button onClick={() => setShowNewEntry(true)} className={`px-6 py-3 ${ecoBg} text-slate-900 rounded-xl font-bold text-xs uppercase flex items-center gap-2`}><Plus size={16}/> Nuevo</button></div></div>
         )}
       </main>
 
+      {/* --- BARRA DE NAVEGACIÓN Y FAB --- */}
       <BottomNavInternal activeView={view} onNavigate={(v) => setView(v)} lang={lang} />
-
-      {stats && <button onClick={() => setShowNewEntry(true)} className={`fixed bottom-24 right-6 w-14 h-14 ${ecoBg} text-slate-900 rounded-full shadow-lg shadow-${ecoColor}-500/30 flex items-center justify-center z-40 hover:scale-110 transition-transform`}><Plus size={28} /></button>}
+      {stats && <button onClick={() => setShowNewEntry(true)} className={`fixed bottom-24 right-6 w-14 h-14 ${ecoBg} text-slate-900 rounded-full shadow-lg shadow-${ecoColor}-500/30 flex items-center justify-center z-40 hover:scale-110 transition-transform active:scale-95`}><Plus size={28} /></button>}
 
       {/* --- MODALES --- */}
+      
+      {/* 1. NUEVO REPOSTAJE */}
       {showNewEntry && (<div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4"><div className={`${modalBg} border border-slate-200 dark:border-white/10 w-full max-w-lg p-6 rounded-3xl relative shadow-2xl animate-in fade-in zoom-in-95 duration-200`}><button onClick={() => setShowNewEntry(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-white"><X size={24}/></button><h3 className={`text-lg font-black uppercase ${modalText} mb-6 flex items-center gap-2`}><Fuel size={20} className={ecoText} /> {txt.newReportTitle}</h3><form onSubmit={async (e) => { e.preventDefault(); const lit = Number(newEntryForm.fuelAmount); const pvp = Number(newEntryForm.pricePerLiter); const kf = Number(newEntryForm.kmFinal); const prev = calculatedEntries[calculatedEntries.length - 1]; const ki = prev ? prev.kmFinal : kf - 500; const newE: FuelEntry = { id: `en-${Date.now()}`, date: newEntryForm.date.split('-').reverse().join('/'), kmInicial: ki, kmFinal: kf, fuelAmount: lit, pricePerLiter: pvp, cost: lit * pvp, distancia: kf - ki, consumption: 0, kmPerLiter: 0 }; setEntries([...entries, newE]); setShowNewEntry(false); }} className="space-y-4"><div className="grid grid-cols-2 gap-4"><div className="col-span-2 space-y-1"><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.date}</label><input type="date" value={newEntryForm.date} onChange={e => setNewEntryForm({...newEntryForm, date: e.target.value})} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div><div className="space-y-1"><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.currentKm}</label><input type="number" value={newEntryForm.kmFinal} onChange={e => setNewEntryForm({...newEntryForm, kmFinal: e.target.value})} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div><div className="space-y-1"><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.liters}</label><input type="number" step="0.01" value={newEntryForm.fuelAmount} onChange={e => setNewEntryForm({...newEntryForm, fuelAmount: e.target.value})} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div><div className="space-y-1 col-span-2"><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.price}</label><input type="number" step="0.001" value={newEntryForm.pricePerLiter} onChange={e => setNewEntryForm({...newEntryForm, pricePerLiter: e.target.value})} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div></div><button type="submit" className={`w-full py-4 ${ecoBg} text-slate-900 rounded-xl font-bold uppercase text-xs tracking-widest mt-4`}>{txt.save}</button></form></div></div>)}
       
+      {/* 2. IMPORTAR CSV */}
       {showImport && (<div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4"><div className={`${modalBg} border border-slate-200 dark:border-white/10 w-full max-w-md p-8 rounded-3xl relative text-center animate-in fade-in zoom-in-95 duration-200`}><button onClick={() => setShowImport(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-white"><X size={24}/></button><div onClick={() => fileInputRef.current?.click()} className={`border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-${ecoColor}-500 rounded-2xl p-10 cursor-pointer transition-colors group`}><Upload className="mx-auto mb-4 text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white" size={40} /><p className="text-xs font-bold uppercase text-slate-400">{txt.importDesc}</p></div><input type="file" ref={fileInputRef} onChange={(e) => { const file = e.target.files?.[0]; if(!file) return; const reader = new FileReader(); reader.onload = async (evt) => { try { const parsed = parseFuelCSV(evt.target?.result as string); setEntries(parsed); setShowImport(false); } catch(err) { alert("Error CSV"); } }; reader.readAsText(file); }} accept=".csv" className="hidden" /></div></div>)}
       
-      {showSettings && (<div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4"><div className={`${modalBg} border border-slate-200 dark:border-white/10 w-full max-w-lg p-6 rounded-3xl relative h-[80vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200`}><button onClick={() => setShowSettings(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-white"><X size={24}/></button><h3 className={`text-xl font-black uppercase ${modalText} mb-6`}>{txt.settingsTitle}</h3><form onSubmit={handleSaveVehicle} className="space-y-6"><div className="space-y-4"><div><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.registration}</label><input name="regDate" type="date" defaultValue={vehicleProfile?.registrationDate} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div><div><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.lastItv}</label><input name="lastItv" type="date" defaultValue={vehicleProfile?.lastItvDate} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} /></div><div className="grid grid-cols-2 gap-4"><div><label className="text-[10px] font-bold text-blue-500 uppercase">{txt.serviceKm}</label><input name="lastServiceKm" type="number" defaultValue={vehicleProfile?.lastServiceKm} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} /></div><div><label className="text-[10px] font-bold text-blue-500 uppercase">{txt.serviceDate}</label><input name="lastServiceDate" type="date" defaultValue={vehicleProfile?.lastServiceDate} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} /></div></div><div><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.vehicleType}</label><select name="category" defaultValue={vehicleProfile?.category || 'turismo'} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`}><option value="turismo">Turismo</option><option value="furgoneta">Furgoneta</option><option value="motocicleta">Moto</option></select></div></div><button type="submit" className={`w-full py-4 ${ecoBg} text-slate-900 rounded-xl font-bold uppercase text-xs`}>{txt.saveChanges}</button></form><div className="mt-8 pt-8 border-t border-slate-100 dark:border-white/5 text-center"><button onClick={handleClearAllData} className="text-red-500 text-[10px] font-bold uppercase hover:text-red-400">{txt.deleteAll}</button></div></div></div>)}
+      {/* 3. SETTINGS (PERFIL DE VEHÍCULO) */}
+      {showSettings && (<div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4"><div className={`${modalBg} border border-slate-200 dark:border-white/10 w-full max-w-lg p-6 rounded-3xl relative h-[80vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200`}><button onClick={() => setShowSettings(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-white"><X size={24}/></button><h3 className={`text-xl font-black uppercase ${modalText} mb-6`}>{txt.settingsTitle}</h3><form onSubmit={handleSaveVehicle} className="space-y-6"><div className="space-y-4">
+        {/* Marca y Modelo */}
+        <div className="grid grid-cols-2 gap-4"><div><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.brand}</label><input name="brand" type="text" placeholder={txt.brandPlaceholder} defaultValue={(vehicleProfile as any)?.brand} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} /></div><div><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.model}</label><input name="model" type="text" placeholder={txt.modelPlaceholder} defaultValue={(vehicleProfile as any)?.model} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} /></div></div>
+        <div><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.registration}</label><input name="regDate" type="date" defaultValue={vehicleProfile?.registrationDate} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div><div><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.lastItv}</label><input name="lastItv" type="date" defaultValue={vehicleProfile?.lastItvDate} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} /></div><div className="grid grid-cols-2 gap-4"><div><label className="text-[10px] font-bold text-blue-500 uppercase">{txt.serviceKm}</label><input name="lastServiceKm" type="number" defaultValue={vehicleProfile?.lastServiceKm} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} /></div><div><label className="text-[10px] font-bold text-blue-500 uppercase">{txt.serviceDate}</label><input name="lastServiceDate" type="date" defaultValue={vehicleProfile?.lastServiceDate} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} /></div></div><div><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.vehicleType}</label><select name="category" defaultValue={vehicleProfile?.category || 'turismo'} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`}><option value="turismo">Turismo</option><option value="furgoneta">Furgoneta</option><option value="motocicleta">Moto</option></select></div></div><button type="submit" className={`w-full py-4 ${ecoBg} text-slate-900 rounded-xl font-bold uppercase text-xs`}>{txt.saveChanges}</button></form><div className="mt-8 pt-8 border-t border-slate-100 dark:border-white/5 text-center"><button onClick={handleClearAllData} className="text-red-500 text-[10px] font-bold uppercase hover:text-red-400">{txt.deleteAll}</button></div></div></div>)}
       
+      {/* 4. GUÍA DE AYUDA */}
       {showGuide && <GuideModal onClose={() => setShowGuide(false)} lang={lang} />}
 
-      {showAnnualStats && (<div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4"><div className={`${modalBg} border border-slate-200 dark:border-white/10 w-full max-w-lg p-6 rounded-3xl relative h-[60vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200`}><button onClick={() => setShowAnnualStats(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-white"><X size={24}/></button><h3 className={`text-xl font-black uppercase ${modalText} mb-6 text-center`}>{txt.annualStats}</h3><div className="text-center mb-8"><p className="text-[10px] font-bold text-slate-500 uppercase">Media por Año</p><p className={`text-3xl font-black ${modalText}`}>{annualStats.avgKm.toLocaleString(undefined, { maximumFractionDigits: 0 })} <span className="text-sm text-slate-500">KM</span></p></div><div className="space-y-4">{annualStats.years.map(({ year, totalKm }) => (<div key={year} className="space-y-1"><div className="flex justify-between text-xs font-bold text-slate-400"><span>{year}</span><span>{totalKm.toLocaleString()} km</span></div><div className="h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-pink-500" style={{ width: `${(totalKm / annualStats.maxYearKm) * 100}%` }} /></div></div>))}</div></div></div>)}
+      {/* 5. HISTORIAL (NUEVO MODAL) */}
+      {showHistory && (
+          <div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4">
+              <div className={`${modalBg} border border-slate-200 dark:border-white/10 w-full max-w-2xl p-0 rounded-3xl relative h-[85vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200 shadow-2xl`}>
+                  <div className="p-4 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-white/90 dark:bg-slate-900/90 backdrop-blur-md z-10">
+                      <h3 className={`text-lg font-black uppercase ${modalText} flex items-center gap-2`}><History size={20} className="text-blue-500"/> {txt.historyBtn}</h3>
+                      <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"><X size={20} className="text-slate-500"/></button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4">
+                    <table className="w-full text-left">
+                        <thead className="bg-slate-50 dark:bg-slate-900/50 text-[9px] font-black uppercase text-slate-500 sticky top-0"><tr><th className="px-4 py-3">{txt.date}</th><th className="px-4 py-3 text-right">Odo.</th><th className="px-4 py-3 text-right text-emerald-600 dark:text-emerald-500">L/100</th><th className="px-4 py-3 text-right">#</th></tr></thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                            {calculatedEntries.slice().reverse().map((e: any) => (
+                            <tr key={e.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
+                                <td className="px-4 py-3 text-xs font-bold text-slate-900 dark:text-white">{e.date}</td>
+                                <td className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400 font-mono-prec">{e.kmFinal.toLocaleString()}</td>
+                                <td className="px-4 py-3 text-right text-sm font-black text-emerald-600 dark:text-emerald-500 font-mono-prec">{e.consumption.toFixed(2)}</td>
+                                <td className="px-4 py-3 text-right"><button onClick={() => deleteEntry(e.id)} className="text-red-500 opacity-50 hover:opacity-100"><Trash2 size={14}/></button></td>
+                            </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                  </div>
+              </div>
+          </div>
+      )}
     </div>
   );
 };
