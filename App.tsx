@@ -189,7 +189,7 @@ const BottomNavInternal = ({ activeView, onNavigate, lang }: { activeView: ViewT
 };
 
 // ==========================================
-// 2. VISTA RESUMEN (HOME) - RECUPERADA TARJETA ANUAL
+// 2. VISTA RESUMEN (HOME)
 // ==========================================
 const StatsViewInternal = ({ stats, trends, t, txt, annualStats }: any) => (
   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24">
@@ -198,7 +198,6 @@ const StatsViewInternal = ({ stats, trends, t, txt, annualStats }: any) => (
     <StatCard label={String(t.avgPvp)} value={stats.avgPricePerLiter.toFixed(3)} unit="€/L" icon={<Euro size={20}/>} color="bg-amber-500" trendData={trends.pvp} />
     <StatCard label={String(t.totalCost)} value={stats.totalCost.toLocaleString('es-ES', { maximumFractionDigits: 0 })} unit="€" icon={<Database size={20}/>} color="bg-violet-500" trendData={trends.cost} />
     
-    {/* Tarjeta Recuperada: Media Anual */}
     <StatCard label={txt.avgYear} value={annualStats.avgKm.toLocaleString('es-ES', { maximumFractionDigits: 0 })} unit="km/año" icon={<Calendar size={20}/>} color="bg-pink-500" trendData={null} />
     
     <StatCard label={String(t.cost100)} value={stats.avgCostPer100Km.toFixed(2)} unit="€" icon={<TrendingUp size={20}/>} color="bg-rose-500" trendData={trends.cost100} />
@@ -208,7 +207,7 @@ const StatsViewInternal = ({ stats, trends, t, txt, annualStats }: any) => (
 );
 
 // ==========================================
-// 3. VISTA GARAJE (CORREGIDA: INCLUYE AUTONOMÍA Y ANIMACIÓN COCHE)
+// 3. VISTA GARAJE
 // ==========================================
 const GarageViewInternal = ({ 
     vehicleProfile, maint, itvDate, itvDays, isItvValid, getItvColor, getItvBg,
@@ -226,7 +225,7 @@ const GarageViewInternal = ({
   return (
     <div className="max-w-xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24">
       
-      {/* 1. FICHA DEL COCHE + MANTENIMIENTO */}
+      {/* 1. FICHA DEL COCHE */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-white/5 relative overflow-hidden">
          <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none"><Car size={120} /></div>
          <div className="relative z-10">
@@ -241,7 +240,6 @@ const GarageViewInternal = ({
             </div>
 
             <div className="space-y-3">
-                {/* ITV */}
                 {isItvValid && (
                     <div className={`p-3 rounded-xl border flex items-center justify-between ${getItvBg(itvDays)}`}>
                         <div>
@@ -253,8 +251,6 @@ const GarageViewInternal = ({
                         </div>
                     </div>
                 )}
-                
-                {/* Revisión */}
                 {maint ? (
                      <div className={`p-3 rounded-xl border flex flex-col gap-2 ${maint.isUrgent ? 'bg-orange-500/10 border-orange-500/20' : 'bg-blue-500/10 border-blue-500/20'}`}>
                          <div className="flex justify-between items-center">
@@ -278,7 +274,7 @@ const GarageViewInternal = ({
          </div>
       </div>
 
-      {/* 2. AUTONOMÍA INTELIGENTE */}
+      {/* 2. AUTONOMÍA */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-white/5 p-6 border-l-4 border-indigo-500 flex flex-col gap-4">
         <h3 className="text-[10px] font-black uppercase flex items-center gap-2 text-slate-900 dark:text-white">
             <Fuel size={14} className="text-indigo-500" /> {String(t.theoreticalRange)}
@@ -295,17 +291,15 @@ const GarageViewInternal = ({
         </div>
       </div>
 
-      {/* 3. CALCULADORA DE TRAYECTO */}
+      {/* 3. CALCULADORA */}
       <div className={`bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-white/5 p-6 border-l-4 ${ecoBorder}`}>
           <h3 className={`text-[10px] font-black uppercase flex items-center gap-2 text-slate-900 dark:text-white mb-4`}><MapPin size={14} className={ecoText} /> Calculadora de Viaje</h3>
-          
           <div className="relative h-8 w-full bg-slate-100 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-white/5 overflow-hidden flex items-center px-4 mb-4">
             <div className="absolute left-0 h-[1px] w-full border-t border-dashed border-slate-400/50 dark:border-slate-700/50"></div>
             <div className="relative z-10 transition-all duration-500 ease-out" style={{ transform: `translateX(calc(${carPos}% - 24px))` }}>
                 <Car size={18} className={`${ecoText} drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]`} />
             </div>
           </div>
-
           <div className="space-y-3">
             <div className="relative">
                 <input type="number" placeholder={String(t.tripDistance)} value={tripKm} onChange={(e) => setTripKm(e.target.value)} className={`w-full bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white border rounded-xl py-3 px-4 text-xs font-bold outline-none focus:border-${ecoColor}-500 font-mono-prec`} />
@@ -326,7 +320,7 @@ const GarageViewInternal = ({
           </div>
       </div>
 
-      {/* 4. GRID DE HERRAMIENTAS */}
+      {/* 4. HERRAMIENTAS */}
       <div className="grid grid-cols-2 gap-3">
           <button onClick={onShowHistory} className={`${btnClass} col-span-2 flex-row gap-3 border-blue-200 dark:border-blue-900/30 bg-blue-50/50 dark:bg-blue-900/10`}>
               <History size={20} className="text-blue-600 dark:text-blue-400"/>
@@ -335,22 +329,18 @@ const GarageViewInternal = ({
                   <p className="text-[9px] text-slate-500">{txt.historyDesc}</p>
               </div>
           </button>
-          
           <button onClick={onImport} className={btnClass}>
               <Upload size={20} className="text-emerald-500"/>
               <span className="font-bold text-slate-700 dark:text-slate-300 text-xs">{txt.importData}</span>
           </button>
-          
           <button onClick={onExportCSV} className={btnClass}>
               <FileText size={20} className="text-blue-500"/>
               <span className="font-bold text-slate-700 dark:text-slate-300 text-xs">{txt.exportCsv}</span>
           </button>
-          
           <button onClick={onExportPDF} className={btnClass}>
               <Download size={20} className="text-violet-500"/>
               <span className="font-bold text-slate-700 dark:text-slate-300 text-xs">{txt.reportPdf}</span>
           </button>
-          
           <button onClick={onBackupEmail} className={btnClass}>
               <Share2 size={20} className="text-amber-500"/>
               <span className="font-bold text-slate-700 dark:text-slate-300 text-xs">{txt.backupEmail}</span>
@@ -361,37 +351,25 @@ const GarageViewInternal = ({
 };
 
 // ==========================================
-// 4. NUEVA GUÍA DE AYUDA (MODAL INTERNO)
+// 4. GUÍA DE AYUDA
 // ==========================================
 const GuideModal = ({ onClose, lang }: { onClose: () => void, lang: 'es'|'en' }) => {
   const isEs = lang === 'es';
   const modalBg = "bg-white dark:bg-slate-900";
   const modalText = "text-slate-900 dark:text-white";
-
   const content = {
     title: isEs ? "Guía FuelMaster Pro" : "FuelMaster Pro Guide",
     maintTitle: isEs ? "Mantenimiento & ITV" : "Maintenance & MOT",
-    maintDesc: isEs 
-       ? "Revisiones: El sistema usa la regla de 'lo que ocurra antes': 15.000 km o 1 año desde el último servicio."
-       : "Service: System uses 'whichever comes first': 15,000 km or 1 year since last service.",
-    itvDesc: isEs 
-       ? "Control ITV: Basado en la normativa española (4-2-1 años). Introduce la fecha de matriculación y categoría en Ajustes; la App calculará la fecha legal automáticamente."
-       : "MOT/ITV: Based on local regulations (4-2-1 years). Enter registration date & category in Settings; App calculates deadline automatically.",
-    colors: isEs 
-       ? "🎨 Semáforo: 🟢 Todo bien | 🟠 Aviso (Menos de 1 mes o 1000km) | 🔴 Vencido."
-       : "🎨 Status: 🟢 All good | 🟠 Warning (< 1 month or 1000km) | 🔴 Expired.",
+    maintDesc: isEs ? "Revisiones: Regla 'lo que ocurra antes': 15.000 km o 1 año." : "Service: 'Whichever comes first': 15,000 km or 1 year.",
+    itvDesc: isEs ? "ITV: Basado en normativa (4-2-1 años) según matrícula." : "MOT: Based on regulations (4-2-1 years) from reg date.",
+    colors: isEs ? "🎨 Semáforo: 🟢 Bien | 🟠 Aviso (<1 mes/1000km) | 🔴 Vencido" : "🎨 Status: 🟢 Good | 🟠 Warning (<1 mo/1000km) | 🔴 Expired",
     dataTitle: isEs ? "Datos y Backups" : "Data & Backups",
-    emailText: isEs
-       ? "📧 Backup Email: Abre el menú nativo de 'Compartir' de tu móvil para enviar el archivo CSV por Correo, WhatsApp, Telegram o guardarlo en Drive."
-       : "📧 Email Backup: Opens native 'Share' menu to send CSV via Email, WhatsApp, Telegram or save to Drive.",
-    csvText: isEs ? "📂 Exportar CSV: Descarga directa del archivo de datos para Excel." : "📂 Export CSV: Direct download of data file for Excel.",
-    pdfText: isEs ? "📄 Reporte PDF: Genera un informe visual oficial con gráficas y totales." : "📄 PDF Report: Generates an official visual report with charts and totals.",
+    emailText: isEs ? "📧 Backup Email: Envía CSV por email/WhatsApp/Drive." : "📧 Email Backup: Send CSV via email/WhatsApp/Drive.",
+    csvText: isEs ? "📂 Exportar CSV: Descarga archivo para Excel." : "📂 Export CSV: Download file for Excel.",
+    pdfText: isEs ? "📄 Reporte PDF: Informe visual con gráficas." : "📄 PDF Report: Visual report with charts.",
     accountTitle: isEs ? "Sincronización" : "Synchronization",
-    accountDesc: isEs
-       ? "Modo Invitado = Datos solo en este móvil. Crea una cuenta para tener copia en la nube y acceder desde varios dispositivos."
-       : "Guest Mode = Data on this phone only. Create an account to backup to cloud and access from multiple devices."
+    accountDesc: isEs ? "Invitado = Solo local. Cuenta = Nube y multidispositivo." : "Guest = Local only. Account = Cloud & multi-device."
   };
-
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className={`${modalBg} rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto border border-slate-200 dark:border-white/10 animate-in fade-in zoom-in-95 duration-200`}>
@@ -410,9 +388,8 @@ const GuideModal = ({ onClose, lang }: { onClose: () => void, lang: 'es'|'en' })
   );
 };
 
-
 // ==========================================
-// 6. APP PRINCIPAL
+// 6. APP PRINCIPAL (LÓGICA CONEXIÓN DB)
 // ==========================================
 
 const App: React.FC = () => {
@@ -442,11 +419,10 @@ const App: React.FC = () => {
   const [showNewEntry, setShowNewEntry] = useState(false);
   const [showSettings, setShowSettings] = useState(false); 
   const [showGuide, setShowGuide] = useState(false);       
-  const [showHistory, setShowHistory] = useState(false); // Modal Historial
+  const [showHistory, setShowHistory] = useState(false); 
   const [newEntryForm, setNewEntryForm] = useState({ date: new Date().toISOString().split('T')[0], kmFinal: '', fuelAmount: '', pricePerLiter: '' });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // CSV
   const handleShareCSV = async () => {
     const headers = ['Fecha', 'Km Inicial', 'Km Final', 'Distancia', 'Litros', 'Precio/L', 'Coste Total', 'Consumo L/100km', 'Km/L', 'Reserva'];
     const rows = calculatedEntries.map(e => [
@@ -476,21 +452,33 @@ const App: React.FC = () => {
   }, []);
 
   const loadLocalData = () => { try { const saved = localStorage.getItem(LOCAL_STORAGE_KEY); if (saved) setEntries(JSON.parse(saved)); } catch (e) { setEntries([]); } };
+  
+  // --- FUNCIÓN CLAVE CORREGIDA: Normalización de fechas ---
   const fetchUserData = async (userId: string) => {
     if (!isSupabaseConfigured) return;
     try {
       const { data: entriesData } = await supabase.from('fuel_entries').select('*').eq('user_id', userId).order('km_final', { ascending: true });
-      if (entriesData) setEntries(entriesData.map(d => ({ id: String(d.id), date: String(d.date), kmInicial: Number(d.km_inicial), kmFinal: Number(d.km_final), fuelAmount: Number(d.fuel_amount), pricePerLiter: Number(d.price_per_liter), cost: Number(d.cost), distancia: Number(d.distancia), consumption: 0, kmPerLiter: 0 })));
+      if (entriesData) setEntries(entriesData.map(d => ({ 
+          id: String(d.id), 
+          // Detectamos si viene YYYY-MM-DD (con guiones) y lo pasamos a DD/MM/YYYY
+          date: String(d.date).indexOf('-') > -1 ? String(d.date).split('-').reverse().join('/') : String(d.date),
+          kmInicial: Number(d.km_inicial), 
+          kmFinal: Number(d.km_final), 
+          fuelAmount: Number(d.fuel_amount), 
+          pricePerLiter: Number(d.price_per_liter), 
+          cost: Number(d.cost), 
+          distancia: Number(d.distancia), 
+          consumption: 0, 
+          kmPerLiter: 0 
+      })));
       const { data: profileData } = await supabase.from('vehicle_profiles').select('*').eq('user_id', userId).single();
       if (profileData) {
-        // En supabase guardamos marca/modelo si extendiéramos, por ahora lo cargamos y guardamos en profile local
         const profile: VehicleProfile = { 
             registrationDate: profileData.registration_date, 
             lastItvDate: profileData.last_itv_date, 
             category: profileData.category as VehicleCategory, 
             lastServiceKm: profileData.last_service_km, 
             lastServiceDate: profileData.last_service_date,
-            // Truco: Supabase no tiene marca/modelo aún, usaremos localStorage para persistir esto localmente
             brand: (JSON.parse(localStorage.getItem(VEHICLE_KEY) || '{}')).brand || 'Mi Coche',
             model: (JSON.parse(localStorage.getItem(VEHICLE_KEY) || '{}')).model || ''
         } as any;
@@ -505,10 +493,15 @@ const App: React.FC = () => {
     } else { setCalculatedEntries([]); setStats(null); }
   }, [entries]);
 
+  // --- ANALÍTICA ANUAL (Robusta con la fecha corregida) ---
   const annualStats = useMemo(() => {
     if (!calculatedEntries.length) return { years: [], avgKm: 0, maxYearKm: 1 };
     const yearsMap: Record<number, number> = {};
-    calculatedEntries.forEach(entry => { const [d,m,y] = entry.date.split('/').map(Number); if(y) yearsMap[y] = (yearsMap[y]||0) + (entry.distancia||0); });
+    calculatedEntries.forEach(entry => { 
+        // Como ya hemos normalizado la fecha en fetchUserData, split('/') siempre funciona
+        const [d,m,y] = entry.date.split('/').map(Number); 
+        if(y) yearsMap[y] = (yearsMap[y]||0) + (entry.distancia||0); 
+    });
     const years = Object.keys(yearsMap).map(Number).sort((a, b) => b - a).map(year => ({ year, totalKm: yearsMap[year] }));
     const avgKm = years.reduce((acc, curr) => acc + curr.totalKm, 0) / (years.length || 1);
     const maxYearKm = Math.max(...years.map(y => y.totalKm), 1);
@@ -523,13 +516,10 @@ const App: React.FC = () => {
         category: fd.get('category') as VehicleCategory, 
         lastServiceKm: Number(fd.get('lastServiceKm')) || undefined, 
         lastServiceDate: fd.get('lastServiceDate') as string || undefined,
-        // Nuevos campos
         brand: fd.get('brand') as string,
         model: fd.get('model') as string
     } as any;
     setVehicleProfile(profile); localStorage.setItem(VEHICLE_KEY, JSON.stringify(profile));
-    
-    // Solo subimos los campos standard a Supabase para no romper
     if (session?.user?.id && isSupabaseConfigured) await supabase.from('vehicle_profiles').upsert({ user_id: session.user.id, registration_date: profile.registrationDate, last_itv_date: profile.lastItvDate, category: profile.category, last_service_km: profile.lastServiceKm, last_service_date: profile.lastServiceDate });
     setShowSettings(false);
   };
@@ -615,7 +605,7 @@ const App: React.FC = () => {
                     <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-10 shadow-sm border border-slate-200 dark:border-white/5"><FuelChart data={calculatedEntries} type="efficiency" /></div>
                   </div>
                   
-                  {/* Tarjeta Analítica Anual (Insertada aquí) */}
+                  {/* Tarjeta Analítica Anual */}
                   <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-white/5 h-fit">
                         <div className="flex items-center gap-3 mb-6">
                             <div className="bg-pink-500/10 p-3 rounded-xl text-pink-500"><BarChart3 size={24}/></div>
@@ -660,28 +650,18 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* --- BARRA DE NAVEGACIÓN Y FAB --- */}
       <BottomNavInternal activeView={view} onNavigate={(v) => setView(v)} lang={lang} />
       {stats && <button onClick={() => setShowNewEntry(true)} className={`fixed bottom-24 right-6 w-14 h-14 ${ecoBg} text-slate-900 rounded-full shadow-lg shadow-${ecoColor}-500/30 flex items-center justify-center z-40 hover:scale-110 transition-transform active:scale-95`}><Plus size={28} /></button>}
 
-      {/* --- MODALES --- */}
-      
-      {/* 1. NUEVO REPOSTAJE (CORREGIDO CON LÓGICA SUPABASE) */}
       {showNewEntry && (<div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4"><div className={`${modalBg} border border-slate-200 dark:border-white/10 w-full max-w-lg p-6 rounded-3xl relative shadow-2xl animate-in fade-in zoom-in-95 duration-200`}><button onClick={() => setShowNewEntry(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-white"><X size={24}/></button><h3 className={`text-lg font-black uppercase ${modalText} mb-6 flex items-center gap-2`}><Fuel size={20} className={ecoText} /> {txt.newReportTitle}</h3><form onSubmit={async (e) => { 
           e.preventDefault(); 
-          // --- NUEVA LÓGICA DE GUARDADO SEGURA ---
           try {
-              // 1. Sanitizar inputs (cambiar comas por puntos)
               const lit = Number(newEntryForm.fuelAmount.replace(',', '.')); 
               const pvp = Number(newEntryForm.pricePerLiter.replace(',', '.'));
               const kf = Number(newEntryForm.kmFinal);
-              
               if (isNaN(lit) || isNaN(pvp) || isNaN(kf)) { alert("Por favor, introduce números válidos."); return; }
-
               const prev = calculatedEntries[calculatedEntries.length - 1]; 
               const ki = prev ? prev.kmFinal : kf - 500; 
-
-              // 2. Intentar guardar en SUPABASE primero
               if (session?.user?.id && isSupabaseConfigured) {
                   const { data, error } = await supabase.from('fuel_entries').insert({
                       user_id: session.user.id,
@@ -693,10 +673,7 @@ const App: React.FC = () => {
                       cost: lit * pvp,
                       distancia: kf - ki
                   }).select().single();
-
                   if (error) throw error; 
-                  
-                  // Si éxito, actualizar localmente con el ID real
                   const newE: FuelEntry = { 
                       id: String(data.id), 
                       date: newEntryForm.date.split('-').reverse().join('/'), 
@@ -705,9 +682,7 @@ const App: React.FC = () => {
                   };
                   setEntries([...entries, newE]);
                   alert("¡Guardado correctamente en la nube!");
-
               } else {
-                  // Modo Local
                   const newE: FuelEntry = { 
                       id: `en-${Date.now()}`, 
                       date: newEntryForm.date.split('-').reverse().join('/'), 
@@ -716,29 +691,22 @@ const App: React.FC = () => {
                   };
                   setEntries([...entries, newE]);
               }
-              // Limpiar y cerrar
               setShowNewEntry(false);
               setNewEntryForm({ date: new Date().toISOString().split('T')[0], kmFinal: '', fuelAmount: '', pricePerLiter: '' });
-
           } catch (err: any) {
               console.error("Error al guardar:", err);
               alert("ERROR AL GUARDAR: " + (err.message || "Revisa tu conexión"));
           }
       }} className="space-y-4"><div className="grid grid-cols-2 gap-4"><div className="col-span-2 space-y-1"><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.date}</label><input type="date" value={newEntryForm.date} onChange={e => setNewEntryForm({...newEntryForm, date: e.target.value})} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div><div className="space-y-1"><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.currentKm}</label><input type="number" value={newEntryForm.kmFinal} onChange={e => setNewEntryForm({...newEntryForm, kmFinal: e.target.value})} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div><div className="space-y-1"><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.liters}</label><input type="number" step="0.01" value={newEntryForm.fuelAmount} onChange={e => setNewEntryForm({...newEntryForm, fuelAmount: e.target.value})} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div><div className="space-y-1 col-span-2"><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.price}</label><input type="number" step="0.001" value={newEntryForm.pricePerLiter} onChange={e => setNewEntryForm({...newEntryForm, pricePerLiter: e.target.value})} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div></div><button type="submit" className={`w-full py-4 ${ecoBg} text-slate-900 rounded-xl font-bold uppercase text-xs tracking-widest mt-4`}>{txt.save}</button></form></div></div>)}
       
-      {/* 2. IMPORTAR CSV */}
       {showImport && (<div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4"><div className={`${modalBg} border border-slate-200 dark:border-white/10 w-full max-w-md p-8 rounded-3xl relative text-center animate-in fade-in zoom-in-95 duration-200`}><button onClick={() => setShowImport(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-white"><X size={24}/></button><div onClick={() => fileInputRef.current?.click()} className={`border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-${ecoColor}-500 rounded-2xl p-10 cursor-pointer transition-colors group`}><Upload className="mx-auto mb-4 text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white" size={40} /><p className="text-xs font-bold uppercase text-slate-400">{txt.importDesc}</p></div><input type="file" ref={fileInputRef} onChange={(e) => { const file = e.target.files?.[0]; if(!file) return; const reader = new FileReader(); reader.onload = async (evt) => { try { const parsed = parseFuelCSV(evt.target?.result as string); setEntries(parsed); setShowImport(false); } catch(err) { alert("Error CSV"); } }; reader.readAsText(file); }} accept=".csv" className="hidden" /></div></div>)}
       
-      {/* 3. SETTINGS (PERFIL DE VEHÍCULO) */}
       {showSettings && (<div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4"><div className={`${modalBg} border border-slate-200 dark:border-white/10 w-full max-w-lg p-6 rounded-3xl relative h-[80vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200`}><button onClick={() => setShowSettings(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-white"><X size={24}/></button><h3 className={`text-xl font-black uppercase ${modalText} mb-6`}>{txt.settingsTitle}</h3><form onSubmit={handleSaveVehicle} className="space-y-6"><div className="space-y-4">
-        {/* Marca y Modelo */}
         <div className="grid grid-cols-2 gap-4"><div><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.brand}</label><input name="brand" type="text" placeholder={txt.brandPlaceholder} defaultValue={(vehicleProfile as any)?.brand} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} /></div><div><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.model}</label><input name="model" type="text" placeholder={txt.modelPlaceholder} defaultValue={(vehicleProfile as any)?.model} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} /></div></div>
         <div><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.registration}</label><input name="regDate" type="date" defaultValue={vehicleProfile?.registrationDate} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div><div><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.lastItv}</label><input name="lastItv" type="date" defaultValue={vehicleProfile?.lastItvDate} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} /></div><div className="grid grid-cols-2 gap-4"><div><label className="text-[10px] font-bold text-blue-500 uppercase">{txt.serviceKm}</label><input name="lastServiceKm" type="number" defaultValue={vehicleProfile?.lastServiceKm} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} /></div><div><label className="text-[10px] font-bold text-blue-500 uppercase">{txt.serviceDate}</label><input name="lastServiceDate" type="date" defaultValue={vehicleProfile?.lastServiceDate} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} /></div></div><div><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.vehicleType}</label><select name="category" defaultValue={vehicleProfile?.category || 'turismo'} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`}><option value="turismo">Turismo</option><option value="furgoneta">Furgoneta</option><option value="motocicleta">Moto</option></select></div></div><button type="submit" className={`w-full py-4 ${ecoBg} text-slate-900 rounded-xl font-bold uppercase text-xs`}>{txt.saveChanges}</button></form><div className="mt-8 pt-8 border-t border-slate-100 dark:border-white/5 text-center"><button onClick={handleClearAllData} className="text-red-500 text-[10px] font-bold uppercase hover:text-red-400">{txt.deleteAll}</button></div></div></div>)}
       
-      {/* 4. GUÍA DE AYUDA */}
       {showGuide && <GuideModal onClose={() => setShowGuide(false)} lang={lang} />}
 
-      {/* 5. HISTORIAL (NUEVO MODAL) */}
       {showHistory && (
           <div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4">
               <div className={`${modalBg} border border-slate-200 dark:border-white/10 w-full max-w-2xl p-0 rounded-3xl relative h-[85vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200 shadow-2xl`}>
