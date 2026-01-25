@@ -666,8 +666,65 @@ const App: React.FC = () => {
 
       {/* --- MODALES --- */}
       
-      {/* 1. NUEVO REPOSTAJE */}
-      {showNewEntry && (<div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4"><div className={`${modalBg} border border-slate-200 dark:border-white/10 w-full max-w-lg p-6 rounded-3xl relative shadow-2xl animate-in fade-in zoom-in-95 duration-200`}><button onClick={() => setShowNewEntry(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-white"><X size={24}/></button><h3 className={`text-lg font-black uppercase ${modalText} mb-6 flex items-center gap-2`}><Fuel size={20} className={ecoText} /> {txt.newReportTitle}</h3><form onSubmit={async (e) => { e.preventDefault(); const lit = Number(newEntryForm.fuelAmount); const pvp = Number(newEntryForm.pricePerLiter); const kf = Number(newEntryForm.kmFinal); const prev = calculatedEntries[calculatedEntries.length - 1]; const ki = prev ? prev.kmFinal : kf - 500; const newE: FuelEntry = { id: `en-${Date.now()}`, date: newEntryForm.date.split('-').reverse().join('/'), kmInicial: ki, kmFinal: kf, fuelAmount: lit, pricePerLiter: pvp, cost: lit * pvp, distancia: kf - ki, consumption: 0, kmPerLiter: 0 }; setEntries([...entries, newE]); setShowNewEntry(false); }} className="space-y-4"><div className="grid grid-cols-2 gap-4"><div className="col-span-2 space-y-1"><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.date}</label><input type="date" value={newEntryForm.date} onChange={e => setNewEntryForm({...newEntryForm, date: e.target.value})} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div><div className="space-y-1"><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.currentKm}</label><input type="number" value={newEntryForm.kmFinal} onChange={e => setNewEntryForm({...newEntryForm, kmFinal: e.target.value})} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div><div className="space-y-1"><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.liters}</label><input type="number" step="0.01" value={newEntryForm.fuelAmount} onChange={e => setNewEntryForm({...newEntryForm, fuelAmount: e.target.value})} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div><div className="space-y-1 col-span-2"><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.price}</label><input type="number" step="0.001" value={newEntryForm.pricePerLiter} onChange={e => setNewEntryForm({...newEntryForm, pricePerLiter: e.target.value})} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div></div><button type="submit" className={`w-full py-4 ${ecoBg} text-slate-900 rounded-xl font-bold uppercase text-xs tracking-widest mt-4`}>{txt.save}</button></form></div></div>)}
+      {/* 1. NUEVO REPOSTAJE (CORREGIDO CON LÓGICA SUPABASE) */}
+      {showNewEntry && (<div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4"><div className={`${modalBg} border border-slate-200 dark:border-white/10 w-full max-w-lg p-6 rounded-3xl relative shadow-2xl animate-in fade-in zoom-in-95 duration-200`}><button onClick={() => setShowNewEntry(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-white"><X size={24}/></button><h3 className={`text-lg font-black uppercase ${modalText} mb-6 flex items-center gap-2`}><Fuel size={20} className={ecoText} /> {txt.newReportTitle}</h3><form onSubmit={async (e) => { 
+          e.preventDefault(); 
+          // --- NUEVA LÓGICA DE GUARDADO SEGURA ---
+          try {
+              // 1. Sanitizar inputs (cambiar comas por puntos)
+              const lit = Number(newEntryForm.fuelAmount.replace(',', '.')); 
+              const pvp = Number(newEntryForm.pricePerLiter.replace(',', '.'));
+              const kf = Number(newEntryForm.kmFinal);
+              
+              if (isNaN(lit) || isNaN(pvp) || isNaN(kf)) { alert("Por favor, introduce números válidos."); return; }
+
+              const prev = calculatedEntries[calculatedEntries.length - 1]; 
+              const ki = prev ? prev.kmFinal : kf - 500; 
+
+              // 2. Intentar guardar en SUPABASE primero
+              if (session?.user?.id && isSupabaseConfigured) {
+                  const { data, error } = await supabase.from('fuel_entries').insert({
+                      user_id: session.user.id,
+                      date: newEntryForm.date,
+                      km_inicial: ki,
+                      km_final: kf,
+                      fuel_amount: lit,
+                      price_per_liter: pvp,
+                      cost: lit * pvp,
+                      distancia: kf - ki
+                  }).select().single();
+
+                  if (error) throw error; 
+                  
+                  // Si éxito, actualizar localmente con el ID real
+                  const newE: FuelEntry = { 
+                      id: String(data.id), 
+                      date: newEntryForm.date.split('-').reverse().join('/'), 
+                      kmInicial: ki, kmFinal: kf, fuelAmount: lit, pricePerLiter: pvp, 
+                      cost: lit * pvp, distancia: kf - ki, consumption: 0, kmPerLiter: 0 
+                  };
+                  setEntries([...entries, newE]);
+                  alert("¡Guardado correctamente en la nube!");
+
+              } else {
+                  // Modo Local
+                  const newE: FuelEntry = { 
+                      id: `en-${Date.now()}`, 
+                      date: newEntryForm.date.split('-').reverse().join('/'), 
+                      kmInicial: ki, kmFinal: kf, fuelAmount: lit, pricePerLiter: pvp, 
+                      cost: lit * pvp, distancia: kf - ki, consumption: 0, kmPerLiter: 0 
+                  };
+                  setEntries([...entries, newE]);
+              }
+              // Limpiar y cerrar
+              setShowNewEntry(false);
+              setNewEntryForm({ date: new Date().toISOString().split('T')[0], kmFinal: '', fuelAmount: '', pricePerLiter: '' });
+
+          } catch (err: any) {
+              console.error("Error al guardar:", err);
+              alert("ERROR AL GUARDAR: " + (err.message || "Revisa tu conexión"));
+          }
+      }} className="space-y-4"><div className="grid grid-cols-2 gap-4"><div className="col-span-2 space-y-1"><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.date}</label><input type="date" value={newEntryForm.date} onChange={e => setNewEntryForm({...newEntryForm, date: e.target.value})} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div><div className="space-y-1"><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.currentKm}</label><input type="number" value={newEntryForm.kmFinal} onChange={e => setNewEntryForm({...newEntryForm, kmFinal: e.target.value})} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div><div className="space-y-1"><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.liters}</label><input type="number" step="0.01" value={newEntryForm.fuelAmount} onChange={e => setNewEntryForm({...newEntryForm, fuelAmount: e.target.value})} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div><div className="space-y-1 col-span-2"><label className="text-[10px] font-bold text-slate-500 uppercase">{txt.price}</label><input type="number" step="0.001" value={newEntryForm.pricePerLiter} onChange={e => setNewEntryForm({...newEntryForm, pricePerLiter: e.target.value})} className={`w-full ${modalInput} border rounded-xl p-3 text-sm`} required /></div></div><button type="submit" className={`w-full py-4 ${ecoBg} text-slate-900 rounded-xl font-bold uppercase text-xs tracking-widest mt-4`}>{txt.save}</button></form></div></div>)}
       
       {/* 2. IMPORTAR CSV */}
       {showImport && (<div className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4"><div className={`${modalBg} border border-slate-200 dark:border-white/10 w-full max-w-md p-8 rounded-3xl relative text-center animate-in fade-in zoom-in-95 duration-200`}><button onClick={() => setShowImport(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-white"><X size={24}/></button><div onClick={() => fileInputRef.current?.click()} className={`border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-${ecoColor}-500 rounded-2xl p-10 cursor-pointer transition-colors group`}><Upload className="mx-auto mb-4 text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white" size={40} /><p className="text-xs font-bold uppercase text-slate-400">{txt.importDesc}</p></div><input type="file" ref={fileInputRef} onChange={(e) => { const file = e.target.files?.[0]; if(!file) return; const reader = new FileReader(); reader.onload = async (evt) => { try { const parsed = parseFuelCSV(evt.target?.result as string); setEntries(parsed); setShowImport(false); } catch(err) { alert("Error CSV"); } }; reader.readAsText(file); }} accept=".csv" className="hidden" /></div></div>)}
