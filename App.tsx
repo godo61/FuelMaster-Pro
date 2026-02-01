@@ -474,11 +474,13 @@ const App: React.FC = () => {
               await fetchUserData(currentSession.user.id);
            }
 
-        } else {
+       } else {
            // No hay sesión
-           alert("ℹ️ MODO INVITADO (Sin usuario logueado)");
-           setIsLocalMode(true);
-           loadLocalData();
+           // ALERTA: Si sale esto, es que la App no te reconoce.
+           // Ponemos 'false' para OBLIGAR a que salga la pantalla de Login.
+           alert("ℹ️ SIN SESIÓN: Te envío a la pantalla de Login.");
+           setIsLocalMode(false); // <--- CAMBIO IMPORTANTE
+           // loadLocalData(); // <--- Ponle dos barras delante para anularlo
         }
 
       } catch (e: any) {
