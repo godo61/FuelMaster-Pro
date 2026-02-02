@@ -439,58 +439,16 @@ const App: React.FC = () => {
   useEffect(() => { document.body.className = theme; localStorage.setItem(THEME_KEY, theme); }, [theme]);
   useEffect(() => { localStorage.setItem(LANG_KEY, lang); }, [lang]);
 
-  // --- PEGA ESTE BLOQUE NUEVO ---
   useEffect(() => {
-    const runDebugAndInit = async () => {
-      console.log("🕵️ INICIANDO DIAGNÓSTICO...");
-      setIsLoading(true);
-
+    const initApp = async () => {
       try {
-        // 1. COMPROBAR CONEXIÓN Y USUARIO
-        const { data: { session: currentSession }, error: authError } = await supabase.auth.getSession();
-        
-        if (authError) {
-           alert("❌ ERROR DE AUTH: " + authError.message);
-        }
-
-        if (currentSession) {
-           console.log("✅ Usuario logueado:", currentSession.user.email);
-           setSession(currentSession);
-           
-           // 2. INTENTAR BAJAR DATOS "A LO BRUTO" (Para ver si existen)
-           const { data: testData, error: dbError } = await supabase
-              .from('fuel_entries')
-              .select('*'); // Sin filtros, dame todo lo que veas
-
-           if (dbError) {
-              alert("❌ ERROR BASE DE DATOS: " + dbError.message + "\n(Código: " + dbError.code + ")");
-           } else if (testData && testData.length > 0) {
-              alert(`✅ ¡CONEXIÓN ÉXITOSA!\nHe encontrado ${testData.length} repostajes en la nube.\n\nEl primero es del: ${testData[0].date}\nKm: ${testData[0].km_final}`);
-              // Si esto sale, intentamos cargar la app normal
-              await fetchUserData(currentSession.user.id);
-           } else {
-              alert("⚠️ CONEXIÓN OK, PERO 0 DATOS.\nSupabase devuelve una lista vacía.\nPosible causa: RLS (Permisos) o tabla vacía.");
-              // Intentamos cargar igual por si acaso
-              await fetchUserData(currentSession.user.id);
-           }
-
-       } else {
-           // No hay sesión
-           // ALERTA: Si sale esto, es que la App no te reconoce.
-           // Ponemos 'false' para OBLIGAR a que salga la pantalla de Login.
-           alert("ℹ️ SIN SESIÓN: Te envío a la pantalla de Login.");
-           setIsLocalMode(false); // <--- CAMBIO IMPORTANTE
-           // loadLocalData(); // <--- Ponle dos barras delante para anularlo
-        }
-
-      } catch (e: any) {
-        alert("💥 ERROR CRÍTICO DEL SISTEMA: " + e.message);
-      } finally {
-        setIsLoading(false);
-      }
+        if (isSupabaseConfigured) {
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
+          if (currentSession) { setSession(currentSession); await fetchUserData(currentSession.user.id); } else { loadLocalData(); }
+        } else { setIsLocalMode(true); loadLocalData(); }
+      } catch (e) { setIsLocalMode(true); loadLocalData(); } finally { setIsLoading(false); }
     };
-
-    runDebugAndInit();
+    initApp();
   }, []);
 
   const loadLocalData = () => { try { const saved = localStorage.getItem(LOCAL_STORAGE_KEY); if (saved) setEntries(JSON.parse(saved)); } catch (e) { setEntries([]); } };
