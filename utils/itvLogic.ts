@@ -1,5 +1,22 @@
 import { VehicleCategory } from '../types';
 
+// NUEVA FUNCIÓN: Traductor de fechas para JavaScript
+const parseSafeDate = (dateStr: string | undefined): Date | null => {
+  if (!dateStr) return null;
+  
+  // Si la fecha viene en formato español (DD/MM/YYYY)
+  if (dateStr.includes('/')) {
+    const [day, month, year] = dateStr.split('/');
+    // En JavaScript, los meses van de 0 a 11 (Enero = 0, Febrero = 1, etc.)
+    const parsedDate = new Date(Number(year), Number(month) - 1, Number(day));
+    if (!isNaN(parsedDate.getTime())) return parsedDate;
+  }
+  
+  // Si viene en formato estándar americano (YYYY-MM-DD), usa el método normal
+  const fallbackDate = new Date(dateStr);
+  return isNaN(fallbackDate.getTime()) ? null : fallbackDate;
+};
+
 /**
  * Calcula la próxima ITV basándose en la fecha de matriculación
  * pero teniendo en cuenta si el usuario ya ha pasado la revisión correspondiente.
@@ -11,13 +28,14 @@ export const calculateNextITV = (
 ): Date | null => {
   if (!registrationDateStr) return null;
   
-  const regDate = new Date(registrationDateStr);
-  if (isNaN(regDate.getTime())) return null;
+  // CORRECCIÓN: Usamos nuestro traductor en lugar de new Date() a secas
+  const regDate = parseSafeDate(registrationDateStr);
+  if (!regDate) return null;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const lastItv = lastItvDateStr ? new Date(lastItvDateStr) : null;
+  const lastItv = parseSafeDate(lastItvDateStr);
   if (lastItv) lastItv.setHours(0, 0, 0, 0);
 
   /**
@@ -66,20 +84,10 @@ export const calculateNextITV = (
   }
 
   // 3. CORRECCIÓN CRÍTICA: Comprobar contra la Última ITV introducida por el usuario.
-  // Si el usuario ha introducido una ITV reciente, es posible que la "fecha teórica futura"
-  // que acabamos de calcular sea precisamente la que el usuario acaba de pasar (p.ej. la pasó 6 días antes).
-  
   if (lastItv && !isNaN(lastItv.getTime())) {
-    // Si la fecha teórica es ANTERIOR a la última ITV real (improbable si el while funciona, pero por seguridad)
-    // O si la fecha teórica está "cubierta" por la última ITV (ej: la ITV fue ayer y vencía en 6 días).
-    // Usamos un margen de 60 días: si la ITV teórica vence en menos de 60 días desde la última inspección real,
-    // asumimos que esa inspección real CUBRÍA este vencimiento.
-    
     const diffTime = nextDeadline.getTime() - lastItv.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    // Si la fecha límite es anterior a la última pasada O está muy cerca (la acabamos de pasar adelantada)
-    // Saltamos al siguiente ciclo.
     if (nextDeadline <= lastItv || (diffDays >= 0 && diffDays < 60)) {
        addInterval(nextDeadline);
     }
