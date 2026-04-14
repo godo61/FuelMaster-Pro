@@ -1,0 +1,16 @@
+name: FuelMaster Pro Life Support
+
+on:
+  schedule:
+    - cron: '30 9 * * *' # Se ejecutará todos los días a las 09:30 UTC
+  workflow_dispatch:      # Para que puedas darle al botón de "probar" manualmente
+
+jobs:
+  ping_supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake up Database
+        run: |
+          curl -f -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/fuel_entries?select=id&limit=1" \
+          -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
