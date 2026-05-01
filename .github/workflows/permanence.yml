@@ -1,0 +1,22 @@
+name: Permanencia Automática
+
+on:
+  schedule:
+    - cron: '0 0 1 * *' # Se ejecuta el día 1 de cada mes
+  workflow_dispatch:      # Para ejecutarlo a mano si quieres
+
+jobs:
+  auto_commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Actualizar fecha de actividad
+        run: |
+          echo "Última actividad automática: $(date)" > ping.txt
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add ping.txt
+          git commit -m "Bot: Manteniendo el repositorio activo"
+          git push
